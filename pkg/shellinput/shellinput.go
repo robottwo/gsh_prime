@@ -245,6 +245,11 @@ func (m Model) Value() string {
 	return string(m.values[m.selectedValueIndex])
 }
 
+// InReverseSearch returns true if the input is currently in reverse search mode.
+func (m Model) InReverseSearch() bool {
+	return m.inReverseSearch
+}
+
 // Position returns the cursor position.
 func (m Model) Position() int {
 	return m.pos
@@ -582,7 +587,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			case msg.String() == "ctrl+g" || msg.String() == "ctrl+c" || msg.String() == "escape":
 				m.cancelReverseSearch()
 				return m, nil
-			case msg.String() == "backspace":
+			case key.Matches(msg, m.KeyMap.DeleteCharacterBackward):
 				if len(m.reverseSearchQuery) > 0 {
 					runes := []rune(m.reverseSearchQuery)
 					m.reverseSearchQuery = string(runes[:len(runes)-1])
