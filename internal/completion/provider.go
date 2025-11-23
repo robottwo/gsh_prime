@@ -84,8 +84,8 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 	}
 
 	// Split the line into words, preserving quotes
-	line = line[:pos]
-	words := splitPreservingQuotes(line)
+	truncatedLine := line[:pos]
+	words := splitPreservingQuotes(truncatedLine)
 	if len(words) == 0 {
 		return make([]string, 0)
 	}
@@ -96,8 +96,25 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 	// Look up completion spec for this command
 	spec, ok := p.CompletionManager.GetSpec(command)
 	if !ok {
+		// Check for global programmable completion command
+		globalCompleter := os.Getenv("GSH_COMPLETION_COMMAND")
+		if globalCompleter != "" {
+			// Create a temporary spec for the global completer
+			globalSpec := CompletionSpec{
+				Command: command,
+				Type:    CommandCompletion,
+				Value:   globalCompleter,
+			}
+
+			suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, globalSpec, words, truncatedLine, pos)
+			if err == nil && len(suggestions) > 0 {
+				return suggestions
+			}
+			// If global completer returns no suggestions or errors, fall back to default behavior
+		}
+
 		// No specific completion spec, check if we should complete command names
-		if len(words) == 1 && !strings.HasSuffix(line, " ") {
+		if len(words) == 1 && !strings.HasSuffix(truncatedLine, " ") {
 			// Single word that doesn't end with space
 			// Check if this looks like a path-based command
 			if p.isPathBasedCommand(command) {
@@ -128,7 +145,7 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 		if len(words) > 1 {
 			// Get the last word as the prefix for file completion
 			prefix = words[len(words)-1]
-		} else if strings.HasSuffix(line, " ") {
+		} else if strings.HasSuffix(truncatedLine, " ") {
 			// If line ends with space, use empty prefix to list all files
 			prefix = ""
 		} else {
@@ -149,7 +166,7 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 	}
 
 	// Execute the completion
-	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words)
+	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, truncatedLine, pos)
 	if err != nil {
 		return make([]string, 0)
 	}

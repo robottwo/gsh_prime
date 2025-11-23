@@ -46,6 +46,8 @@ func TestCompletionManager(t *testing.T) {
 			name    string
 			spec    CompletionSpec
 			args    []string
+			line    string
+			pos     int
 			want    []string
 			wantErr bool
 		}{
@@ -56,6 +58,8 @@ func TestCompletionManager(t *testing.T) {
 					Value: "apple banana cherry",
 				},
 				args: []string{},
+				line: "",
+				pos:  0,
 				want: []string{"apple", "banana", "cherry"},
 			},
 			{
@@ -65,6 +69,8 @@ func TestCompletionManager(t *testing.T) {
 					Value: "apple banana cherry",
 				},
 				args: []string{"command", "b"},
+				line: "command b",
+				pos:  9,
 				want: []string{"banana"},
 			},
 			{
@@ -74,6 +80,8 @@ func TestCompletionManager(t *testing.T) {
 					Value: "apple banana cherry",
 				},
 				args: []string{"command", "x"},
+				line: "command x",
+				pos:  9,
 				want: []string{},
 			},
 			{
@@ -83,6 +91,8 @@ func TestCompletionManager(t *testing.T) {
 					Value: "my_completion",
 				},
 				args: []string{"command", "arg"},
+				line: "command arg",
+				pos:  11,
 				want: []string{"foo", "bar", "baz"},
 			},
 			{
@@ -92,6 +102,8 @@ func TestCompletionManager(t *testing.T) {
 					Value: "prefix_completion",
 				},
 				args: []string{"command", "b"},
+				line: "command b",
+				pos:  9,
 				want: []string{"bar", "baz"},
 			},
 			{
@@ -101,6 +113,8 @@ func TestCompletionManager(t *testing.T) {
 					Value: "my_completion",
 				},
 				args: []string{},
+				line: "",
+				pos:  0,
 				want: []string{"foo", "bar", "baz"},
 			},
 			{
@@ -110,13 +124,15 @@ func TestCompletionManager(t *testing.T) {
 					Value: "something",
 				},
 				args:    []string{"command", "arg"},
+				line:    "command arg",
+				pos:     11,
 				wantErr: true,
 			},
 		}
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				got, err := manager.ExecuteCompletion(context.Background(), runner, tt.spec, tt.args)
+				got, err := manager.ExecuteCompletion(context.Background(), runner, tt.spec, tt.args, tt.line, tt.pos)
 
 				if tt.wantErr {
 					assert.Error(t, err)
@@ -204,12 +220,23 @@ func TestCompleteCommandHandler(t *testing.T) {
 		assert.Equal(t, FunctionCompletion, spec.Type)
 		assert.Equal(t, "_mycmd_completion", spec.Value)
 
+		// Test command completion
+		err = wrappedHandler(context.Background(), []string{"complete", "-C", "mock_completer", "mycmd3"})
+		assert.NoError(t, err)
+
+		// Verify the command spec was added correctly
+		spec, exists = manager.GetSpec("mycmd3")
+		assert.True(t, exists)
+		assert.Equal(t, CommandCompletion, spec.Type)
+		assert.Equal(t, "mock_completer", spec.Value)
+
 		// Test complete -p
 		captured = []string{}
 		err = wrappedHandler(context.Background(), []string{"complete", "-p"})
 		assert.NoError(t, err)
 		assert.Contains(t, captured, "complete -W \"foo bar\" mycmd\n")
 		assert.Contains(t, captured, "complete -F _mycmd_completion mycmd2\n")
+		assert.Contains(t, captured, "complete -C \"mock_completer\" mycmd3\n")
 
 		// Test complete -p mycmd
 		captured = []string{}

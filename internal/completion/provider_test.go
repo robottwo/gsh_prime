@@ -51,7 +51,7 @@ func (m *mockCompletionManager) GetSpec(command string) (CompletionSpec, bool) {
 	return args.Get(0).(CompletionSpec), args.Bool(1)
 }
 
-func (m *mockCompletionManager) ExecuteCompletion(ctx context.Context, runner *interp.Runner, spec CompletionSpec, args []string) ([]string, error) {
+func (m *mockCompletionManager) ExecuteCompletion(ctx context.Context, runner *interp.Runner, spec CompletionSpec, args []string, line string, pos int) ([]string, error) {
 	callArgs := m.Called(ctx, runner, spec, args)
 	return callArgs.Get(0).([]string), callArgs.Error(1)
 }
