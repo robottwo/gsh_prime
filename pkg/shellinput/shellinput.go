@@ -745,15 +745,21 @@ func (m Model) View() string {
 	if m.inReverseSearch {
 		// When in reverse search mode, show the search prompt
 		matchText := ""
+		prefix := "(reverse-i-search)"
+
 		if len(m.reverseSearchMatches) > 0 {
-			matchIndex := m.reverseSearchMatches[m.reverseSearchMatchIndex]
-			matchText = string(m.values[matchIndex])
+			// Ensure index is within bounds
+			if m.reverseSearchMatchIndex < len(m.reverseSearchMatches) {
+				matchIndex := m.reverseSearchMatches[m.reverseSearchMatchIndex]
+				if matchIndex >= 0 && matchIndex < len(m.values) {
+					matchText = string(m.values[matchIndex])
+				}
+			}
 		} else if m.reverseSearchQuery != "" {
-			matchText = "failing reverse-i-search: " + m.reverseSearchQuery
+			prefix = "(failed reverse-i-search)"
 		}
 
-		prefix := fmt.Sprintf("(reverse-i-search)`%s': ", m.reverseSearchQuery)
-		return m.ReverseSearchPromptStyle.Render(prefix + matchText)
+		return m.ReverseSearchPromptStyle.Render(fmt.Sprintf("%s`%s': %s", prefix, m.reverseSearchQuery, matchText))
 	}
 
 	styleText := m.TextStyle.Inline(true).Render
