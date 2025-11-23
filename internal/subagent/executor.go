@@ -17,6 +17,7 @@ import (
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
+	"mvdan.cc/sh/v3/expand"
 )
 
 // SubagentExecutor handles the execution of individual subagents
@@ -172,6 +173,27 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 		defer signal.Stop(signalChan)
 
 		continueSession := true
+
+		// Set prompt for subagent execution
+		originalPrompt := e.runner.Vars["GSH_APROMPT"]
+		subagentPrompt := fmt.Sprintf("%s> ", e.subagent.Name)
+
+		// Let's try to be smart about extracting an emoji/icon
+		parts := strings.Fields(e.subagent.Name)
+		if len(parts) > 0 {
+			// Check if first part contains non-alphanumeric chars
+			firstPart := parts[0]
+			matched, _ := regexp.MatchString(`^[a-zA-Z0-9]+$`, firstPart)
+			if !matched && len(firstPart) < 10 { // Assume it's an icon if short and special chars
+				subagentPrompt = firstPart + "> "
+			}
+		}
+
+		e.runner.Vars["GSH_APROMPT"] = expand.Variable{Kind: expand.String, Str: subagentPrompt}
+		// Restore prompt when done
+		defer func() {
+			e.runner.Vars["GSH_APROMPT"] = originalPrompt
+		}()
 
 		for continueSession {
 			continueSession = false
