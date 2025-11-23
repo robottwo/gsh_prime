@@ -32,11 +32,10 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 	}
 
 	// Execute the completion
-	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words)
+	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, line, pos)
 	if err != nil {
 		return []string{}
 	}
 
 	return suggestions
 }
-
