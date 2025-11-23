@@ -1156,6 +1156,19 @@ func (m *Model) performReverseSearch() {
 	found := false
 	for i := startSearchIndex; i < len(m.values); i++ {
 		if regex.MatchString(string(m.values[i])) {
+			// Check if this match is a duplicate of a previously found match
+			isDuplicate := false
+			currentVal := string(m.values[i])
+			for _, matchIdx := range m.reverseSearchMatches {
+				if string(m.values[matchIdx]) == currentVal {
+					isDuplicate = true
+					break
+				}
+			}
+			if isDuplicate {
+				continue
+			}
+
 			// Found a match
 			// Append to the list of matches
 			m.reverseSearchMatches = append(m.reverseSearchMatches, i)

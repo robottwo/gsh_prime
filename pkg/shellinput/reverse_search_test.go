@@ -171,3 +171,37 @@ func TestReverseSearchNavigation(t *testing.T) {
 	assert.False(t, model.inReverseSearch)
 	assert.Equal(t, "echo A", model.Value())
 }
+
+func TestReverseSearchDuplicates(t *testing.T) {
+	model := New()
+	model.Focus()
+
+	// History: [1]"echo A", [2]"echo B", [3]"echo A", [4]"echo C"
+	history := []string{"echo A", "echo B", "echo A", "echo C"}
+	model.SetHistoryValues(history)
+
+	// Enter search, type "echo"
+	msg := tea.KeyMsg{Type: tea.KeyCtrlR}
+	model, _ = model.Update(msg)
+	msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("echo")}
+	model, _ = model.Update(msg)
+
+	// Should match [1]"echo A"
+	assert.Equal(t, 1, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+	assert.Equal(t, "echo A", string(model.values[model.reverseSearchMatches[0]]))
+
+	// Up Arrow -> Next match (older) -> [2]"echo B"
+	msg = tea.KeyMsg{Type: tea.KeyUp}
+	model, _ = model.Update(msg)
+	assert.Equal(t, 2, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+	assert.Equal(t, "echo B", string(model.values[model.reverseSearchMatches[1]]))
+
+	// Up Arrow -> Next match (older) -> Should skip [3]"echo A" (duplicate) and find [4]"echo C"
+	msg = tea.KeyMsg{Type: tea.KeyUp}
+	model, _ = model.Update(msg)
+	assert.Equal(t, 4, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+	assert.Equal(t, "echo C", string(model.values[model.reverseSearchMatches[2]]))
+
+	// Verify we only have 3 unique matches
+	assert.Len(t, model.reverseSearchMatches, 3)
+}
