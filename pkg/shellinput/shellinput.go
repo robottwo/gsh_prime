@@ -565,7 +565,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		if m.inReverseSearch {
 			switch {
 			case key.Matches(msg, m.KeyMap.ReverseSearch):
-				m.performReverseSearch()
+				m.cycleNextMatch()
+				return m, nil
+			case key.Matches(msg, m.KeyMap.PrevValue):
+				m.cycleNextMatch() // Up arrow -> older
+				return m, nil
+			case key.Matches(msg, m.KeyMap.NextValue):
+				m.cyclePrevMatch() // Down arrow -> newer
+				return m, nil
+			case key.Matches(msg, m.KeyMap.CharacterBackward), key.Matches(msg, m.KeyMap.CharacterForward):
+				m.acceptReverseSearch() // Left/Right -> accept and edit
 				return m, nil
 			case msg.String() == "enter":
 				m.acceptReverseSearch()
@@ -1084,12 +1093,30 @@ func cloneConcatRunes(r1, r2 []rune) []rune {
 func (m *Model) toggleReverseSearch() {
 	if m.inReverseSearch {
 		// If we are already in reverse search, cycle to next match
-		m.performReverseSearch()
+		m.cycleNextMatch()
 	} else {
 		m.inReverseSearch = true
 		m.reverseSearchQuery = ""
 		m.reverseSearchMatches = []int{}
 		m.reverseSearchMatchIndex = 0
+	}
+}
+
+// cycleNextMatch moves to the next match (older in history).
+func (m *Model) cycleNextMatch() {
+	// If we can move forward in the existing matches list, do so
+	if len(m.reverseSearchMatches) > 0 && m.reverseSearchMatchIndex < len(m.reverseSearchMatches)-1 {
+		m.reverseSearchMatchIndex++
+		return
+	}
+	// Otherwise, search for a new match
+	m.performReverseSearch()
+}
+
+// cyclePrevMatch moves to the previous match (newer in history).
+func (m *Model) cyclePrevMatch() {
+	if m.reverseSearchMatchIndex > 0 {
+		m.reverseSearchMatchIndex--
 	}
 }
 
@@ -1109,10 +1136,10 @@ func (m *Model) performReverseSearch() {
 	// If we are continuing a search (Ctrl+R pressed again), look for the next match
 	startSearchIndex := 1
 	if len(m.reverseSearchMatches) > 0 {
-		// If we already have matches and we're cycling, try to find the next one
-		// We want to continue searching from where we left off
-		currentMatchIndex := m.reverseSearchMatches[m.reverseSearchMatchIndex]
-		startSearchIndex = currentMatchIndex + 1
+		// Always search relative to the LAST found match, to find the next new one
+		// This allows us to find subsequent matches even if we navigated back to an earlier one
+		lastMatchIndex := m.reverseSearchMatches[len(m.reverseSearchMatches)-1]
+		startSearchIndex = lastMatchIndex + 1
 	} else {
 		// Reset matches if we're starting a new search
 		m.reverseSearchMatches = []int{}
@@ -1125,15 +1152,9 @@ func (m *Model) performReverseSearch() {
 	for i := startSearchIndex; i < len(m.values); i++ {
 		if regex.MatchString(string(m.values[i])) {
 			// Found a match
-			if len(m.reverseSearchMatches) > 0 {
-				// If we're cycling, we just update the index
-				m.reverseSearchMatches = append(m.reverseSearchMatches, i)
-				m.reverseSearchMatchIndex = len(m.reverseSearchMatches) - 1
-			} else {
-				// First match
-				m.reverseSearchMatches = []int{i}
-				m.reverseSearchMatchIndex = 0
-			}
+			// Append to the list of matches
+			m.reverseSearchMatches = append(m.reverseSearchMatches, i)
+			m.reverseSearchMatchIndex = len(m.reverseSearchMatches) - 1
 			found = true
 			break
 		}

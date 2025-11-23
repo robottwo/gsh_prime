@@ -127,3 +127,47 @@ func TestReverseSearchUTF8(t *testing.T) {
 	updatedModel, _ = updatedModel.Update(msg)
 	assert.Equal(t, "", updatedModel.reverseSearchQuery, "Should correctly delete multibyte character")
 }
+
+func TestReverseSearchNavigation(t *testing.T) {
+	model := New()
+	model.Focus()
+
+	// History: [1]"echo A", [2]"echo B", [3]"echo C"
+	history := []string{"echo A", "echo B", "echo C"}
+	model.SetHistoryValues(history)
+
+	// Enter search, type "echo"
+	msg := tea.KeyMsg{Type: tea.KeyCtrlR}
+	model, _ = model.Update(msg)
+	msg = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("echo")}
+	model, _ = model.Update(msg)
+
+	// Should match [1]"echo A"
+	assert.Equal(t, 1, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+
+	// Up Arrow -> Next match (older) -> [2]"echo B"
+	msg = tea.KeyMsg{Type: tea.KeyUp}
+	model, _ = model.Update(msg)
+	assert.Equal(t, 2, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+
+	// Up Arrow -> Next match (older) -> [3]"echo C"
+	msg = tea.KeyMsg{Type: tea.KeyUp}
+	model, _ = model.Update(msg)
+	assert.Equal(t, 3, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+
+	// Down Arrow -> Prev match (newer) -> [2]"echo B"
+	msg = tea.KeyMsg{Type: tea.KeyDown}
+	model, _ = model.Update(msg)
+	assert.Equal(t, 2, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+
+	// Down Arrow -> Prev match (newer) -> [1]"echo A"
+	msg = tea.KeyMsg{Type: tea.KeyDown}
+	model, _ = model.Update(msg)
+	assert.Equal(t, 1, model.reverseSearchMatches[model.reverseSearchMatchIndex])
+
+	// Right Arrow -> Accept
+	msg = tea.KeyMsg{Type: tea.KeyRight}
+	model, _ = model.Update(msg)
+	assert.False(t, model.inReverseSearch)
+	assert.Equal(t, "echo A", model.Value())
+}
