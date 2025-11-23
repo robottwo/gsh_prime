@@ -16,8 +16,8 @@ import (
 	"github.com/atinylittleshell/gsh/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
-	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/expand"
+	"mvdan.cc/sh/v3/interp"
 )
 
 // SubagentExecutor handles the execution of individual subagents
@@ -176,7 +176,9 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 
 		// Set prompt for subagent execution
 		originalPrompt := e.runner.Vars["GSH_APROMPT"]
-		subagentPrompt := fmt.Sprintf("%s> ", e.subagent.Name)
+
+		// Determine subagent prompt (icon or name)
+		subagentPrompt := fmt.Sprintf("%s > ", e.subagent.Name) // Default: "Name > "
 
 		// Let's try to be smart about extracting an emoji/icon
 		parts := strings.Fields(e.subagent.Name)
@@ -184,7 +186,9 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 			// Check if first part contains non-alphanumeric chars
 			firstPart := parts[0]
 			matched, _ := regexp.MatchString(`^[a-zA-Z0-9]+$`, firstPart)
-			if !matched && len(firstPart) < 10 { // Assume it's an icon if short and special chars
+			if !matched && len(firstPart) < 10 {
+				// Assume it's an icon if short and has special chars
+				// For icon, use "Icon> " (no space before >)
 				subagentPrompt = firstPart + "> "
 			}
 		}
