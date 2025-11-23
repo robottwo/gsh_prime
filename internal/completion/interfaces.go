@@ -9,5 +9,5 @@ import (
 // CompletionManagerInterface defines the interface for completion management
 type CompletionManagerInterface interface {
 	GetSpec(command string) (CompletionSpec, bool)
-	ExecuteCompletion(ctx context.Context, runner *interp.Runner, spec CompletionSpec, args []string) ([]string, error)
+	ExecuteCompletion(ctx context.Context, runner *interp.Runner, spec CompletionSpec, args []string, line string, pos int) ([]string, error)
 }

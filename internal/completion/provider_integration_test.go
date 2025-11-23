@@ -2,6 +2,7 @@ package completion
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -514,6 +515,62 @@ func TestShellCompletionProvider_CompletionSpec_Integration(t *testing.T) {
 				assert.True(t, found,
 					"Should contain %s (or git %s) in completions: %v",
 					expected, expected, completions)
+			}
+		})
+	}
+}
+
+func TestShellCompletionProvider_GlobalCompletion_Integration(t *testing.T) {
+	// Skip on CI if needed, or ensure sh is available
+	if _, err := exec.LookPath("sh"); err != nil {
+		t.Skip("sh not found")
+	}
+
+	runner, err := interp.New()
+	require.NoError(t, err)
+
+	manager := NewCompletionManager()
+	provider := NewShellCompletionProvider(manager, runner)
+
+	// Create a script that ignores arguments and prints completions
+	tmpDir := t.TempDir()
+	scriptPath := filepath.Join(tmpDir, "completer.sh")
+	scriptContent := `#!/bin/sh
+echo global-option1
+echo global-option2
+`
+	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
+	require.NoError(t, err)
+
+	os.Setenv("GSH_COMPLETION_COMMAND", scriptPath)
+	defer os.Unsetenv("GSH_COMPLETION_COMMAND")
+
+	tests := []struct {
+		name          string
+		line          string
+		pos           int
+		expectedMin   int
+		shouldContain []string
+	}{
+		{
+			name:          "global completion fallback",
+			line:          "unknown-cmd ",
+			pos:           12,
+			expectedMin:   2,
+			shouldContain: []string{"global-option1", "global-option2"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			completions := provider.GetCompletions(tt.line, tt.pos)
+
+			assert.GreaterOrEqual(t, len(completions), tt.expectedMin,
+				"Should have at least %d completions, got %d: %v",
+				tt.expectedMin, len(completions), completions)
+
+			for _, expected := range tt.shouldContain {
+				assert.Contains(t, completions, expected)
 			}
 		})
 	}
