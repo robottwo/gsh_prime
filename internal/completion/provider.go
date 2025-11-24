@@ -12,6 +12,7 @@ import (
 	"unicode"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -56,7 +57,7 @@ func (p *ShellCompletionProvider) SetSubagentProvider(provider SubagentProvider)
 }
 
 // GetCompletions returns completion suggestions for the current input line
-func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string {
+func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellinput.CompletionCandidate {
 	// First check for special prefixes (#/ and #!)
 	if completion := p.checkSpecialPrefixes(line, pos); completion != nil {
 		return completion
@@ -66,7 +67,7 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 	truncatedLine := line[:pos]
 	words := splitPreservingQuotes(truncatedLine)
 	if len(words) == 0 {
-		return make([]string, 0)
+		return make([]shellinput.CompletionCandidate, 0)
 	}
 
 	// Get the command (first word)
@@ -100,13 +101,13 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 				// For path-based commands, complete with executable files in that path
 				executableCompletions := p.getExecutableCompletions(command)
 				if len(executableCompletions) > 0 {
-					return executableCompletions
+					return toCandidates(executableCompletions)
 				}
 			} else {
 				// Regular command name completion
 				commandCompletions := p.getAvailableCommands(command)
 				if len(commandCompletions) > 0 {
-					return commandCompletions
+					return toCandidates(commandCompletions)
 				}
 			}
 		}
@@ -120,7 +121,7 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 			// If line ends with space, use empty prefix to list all files
 			prefix = ""
 		} else {
-			return make([]string, 0)
+			return make([]shellinput.CompletionCandidate, 0)
 		}
 
 		completions := getFileCompletions(prefix, environment.GetPwd(p.Runner))
@@ -133,23 +134,32 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 				completions[i] = "\"" + completion + "\""
 			}
 		}
-		return completions
+		return toCandidates(completions)
 	}
 
 	// Execute the completion
 	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, truncatedLine, pos)
 	if err != nil {
-		return make([]string, 0)
+		return make([]shellinput.CompletionCandidate, 0)
 	}
 
 	if suggestions == nil {
-		return make([]string, 0)
+		return make([]shellinput.CompletionCandidate, 0)
 	}
 	return suggestions
 }
 
+// toCandidates converts a list of strings to CompletionCandidate list
+func toCandidates(strs []string) []shellinput.CompletionCandidate {
+	candidates := make([]shellinput.CompletionCandidate, len(strs))
+	for i, s := range strs {
+		candidates[i] = shellinput.CompletionCandidate{Value: s}
+	}
+	return candidates
+}
+
 // checkSpecialPrefixes checks for #/, #!, and #@ prefixes and returns appropriate completions
-func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []string {
+func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []shellinput.CompletionCandidate {
 	// Get the current word being completed
 	start, end := p.getCurrentWordBoundary(line, pos)
 	if start < 0 || end < 0 {
@@ -176,9 +186,9 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 			for i, completion := range completions {
 				completions[i] = linePrefix + completion
 			}
-			return completions
+			return toCandidates(completions)
 		}
-		return completions
+		return toCandidates(completions)
 	} else if strings.HasPrefix(currentWord, "@!") {
 		completions := p.getBuiltinCommandCompletions(currentWord)
 		if len(completions) == 0 {
@@ -196,9 +206,9 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 			for i, completion := range completions {
 				completions[i] = linePrefix + completion
 			}
-			return completions
+			return toCandidates(completions)
 		}
-		return completions
+		return toCandidates(completions)
 	} else if strings.HasPrefix(currentWord, "@") && !strings.HasPrefix(currentWord, "@/") && !strings.HasPrefix(currentWord, "@!") {
 		// Subagent completions - allow anywhere in the line, not just at the start
 		completions := p.getSubagentCompletions(currentWord)
@@ -222,14 +232,14 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 			for i, completion := range completions {
 				completions[i] = linePrefix + completion + lineSuffix
 			}
-			return completions
+			return toCandidates(completions)
 		}
 
 		// Add completions with proper prefix and suffix
 		for i, completion := range completions {
 			completions[i] = linePrefix + completion + lineSuffix
 		}
-		return completions
+		return toCandidates(completions)
 	}
 
 	// Also check if we're at the beginning of a potential prefix
@@ -259,9 +269,9 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 				for i, completion := range completions {
 					completions[i] = linePrefix + completion
 				}
-				return completions
+				return toCandidates(completions)
 			}
-			return completions
+			return toCandidates(completions)
 		} else if strings.HasPrefix(potentialWord, "@!") {
 			completions := p.getBuiltinCommandCompletions(potentialWord)
 			if len(completions) == 0 {
@@ -279,9 +289,9 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 				for i, completion := range completions {
 					completions[i] = linePrefix + completion
 				}
-				return completions
+				return toCandidates(completions)
 			}
-			return completions
+			return toCandidates(completions)
 		} else if strings.HasPrefix(potentialWord, "@") && !strings.HasPrefix(potentialWord, "@/") && !strings.HasPrefix(potentialWord, "@!") {
 			// Subagent completions - only if this is the first non-whitespace on the line
 			if !p.isAtLineStart(line, wordStart) {
@@ -308,14 +318,14 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 				for i, completion := range completions {
 					completions[i] = linePrefix + completion + lineSuffix
 				}
-				return completions
+				return toCandidates(completions)
 			}
 
 			// Add completions with proper prefix and suffix
 			for i, completion := range completions {
 				completions[i] = linePrefix + completion + lineSuffix
 			}
-			return completions
+			return toCandidates(completions)
 		}
 	}
 

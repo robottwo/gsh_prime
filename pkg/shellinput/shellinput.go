@@ -902,6 +902,23 @@ func (m Model) CompletionBoxView() string {
 		return ""
 	}
 
+	// Check if we need to show descriptions (Zsh style)
+	hasDescriptions := false
+	maxCandidateWidth := 0
+	for _, s := range m.completion.suggestions {
+		if s.Description != "" {
+			hasDescriptions = true
+		}
+
+		width := uniseg.StringWidth(s.Display)
+		if width == 0 {
+			width = uniseg.StringWidth(s.Value)
+		}
+		if width > maxCandidateWidth {
+			maxCandidateWidth = width
+		}
+	}
+
 	var content strings.Builder
 
 	// Calculate the visible window based on selected item
@@ -950,7 +967,12 @@ func (m Model) CompletionBoxView() string {
 			break
 		}
 
-		suggestion := m.completion.suggestions[i]
+		candidate := m.completion.suggestions[i]
+		displayText := candidate.Display
+		if displayText == "" {
+			displayText = candidate.Value
+		}
+
 		var prefix string
 
 		// Determine prefix based on position and scroll state
@@ -972,7 +994,19 @@ func (m Model) CompletionBoxView() string {
 			prefix += "  "
 		}
 
-		content.WriteString(prefix + suggestion)
+		content.WriteString(prefix)
+
+		if hasDescriptions {
+			// Render as two columns: Candidate | Description
+			// Pad the candidate to align descriptions
+			padding := maxCandidateWidth - uniseg.StringWidth(displayText) + 2
+			content.WriteString(displayText)
+			content.WriteString(strings.Repeat(" ", padding))
+			content.WriteString(lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(candidate.Description))
+		} else {
+			// Render simple list
+			content.WriteString(displayText)
+		}
 
 		// Add newline except for the last item
 		if idx < 3 && i < endIdx-1 {
