@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
@@ -48,7 +49,7 @@ func TestCompletionManager(t *testing.T) {
 			args    []string
 			line    string
 			pos     int
-			want    []string
+			want    []shellinput.CompletionCandidate
 			wantErr bool
 		}{
 			{
@@ -60,7 +61,11 @@ func TestCompletionManager(t *testing.T) {
 				args: []string{},
 				line: "",
 				pos:  0,
-				want: []string{"apple", "banana", "cherry"},
+				want: []shellinput.CompletionCandidate{
+					{Value: "apple"},
+					{Value: "banana"},
+					{Value: "cherry"},
+				},
 			},
 			{
 				name: "word list completion - with filter",
@@ -71,7 +76,9 @@ func TestCompletionManager(t *testing.T) {
 				args: []string{"command", "b"},
 				line: "command b",
 				pos:  9,
-				want: []string{"banana"},
+				want: []shellinput.CompletionCandidate{
+					{Value: "banana"},
+				},
 			},
 			{
 				name: "word list completion - no matches",
@@ -82,7 +89,7 @@ func TestCompletionManager(t *testing.T) {
 				args: []string{"command", "x"},
 				line: "command x",
 				pos:  9,
-				want: []string{},
+				want: []shellinput.CompletionCandidate{},
 			},
 			{
 				name: "function completion - basic",
@@ -93,7 +100,11 @@ func TestCompletionManager(t *testing.T) {
 				args: []string{"command", "arg"},
 				line: "command arg",
 				pos:  11,
-				want: []string{"foo", "bar", "baz"},
+				want: []shellinput.CompletionCandidate{
+					{Value: "foo"},
+					{Value: "bar"},
+					{Value: "baz"},
+				},
 			},
 			{
 				name: "function completion - with prefix handling",
@@ -104,7 +115,10 @@ func TestCompletionManager(t *testing.T) {
 				args: []string{"command", "b"},
 				line: "command b",
 				pos:  9,
-				want: []string{"bar", "baz"},
+				want: []shellinput.CompletionCandidate{
+					{Value: "bar"},
+					{Value: "baz"},
+				},
 			},
 			{
 				name: "function completion - empty args",
@@ -115,7 +129,11 @@ func TestCompletionManager(t *testing.T) {
 				args: []string{},
 				line: "",
 				pos:  0,
-				want: []string{"foo", "bar", "baz"},
+				want: []shellinput.CompletionCandidate{
+					{Value: "foo"},
+					{Value: "bar"},
+					{Value: "baz"},
+				},
 			},
 			{
 				name: "invalid completion type",

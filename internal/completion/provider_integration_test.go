@@ -7,6 +7,7 @@ import (
 	"testing"
 	"runtime"
 
+	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"mvdan.cc/sh/v3/expand"
@@ -140,8 +141,14 @@ func TestShellCompletionProvider_FileCompletion_Integration(t *testing.T) {
 
 			// Verify all expected items are present
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
-					"Should contain %s in completions: %v", expected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == expected {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Should contain %s in completions", expected)
 			}
 
 			manager.AssertExpectations(t)
@@ -216,13 +223,25 @@ func TestShellCompletionProvider_MacroCompletion_Integration(t *testing.T) {
 				tt.expectedCount, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
-					"Should contain %s in completions: %v", expected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == expected {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Should contain %s in completions", expected)
 			}
 
 			for _, notExpected := range tt.shouldNotContain {
-				assert.NotContains(t, completions, notExpected,
-					"Should not contain %s in completions: %v", notExpected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == notExpected {
+						found = true
+						break
+					}
+				}
+				assert.False(t, found, "Should not contain %s in completions", notExpected)
 			}
 		})
 	}
@@ -283,13 +302,25 @@ func TestShellCompletionProvider_BuiltinCompletion_Integration(t *testing.T) {
 				tt.expectedCount, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
-					"Should contain %s in completions: %v", expected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == expected {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Should contain %s in completions", expected)
 			}
 
 			for _, notExpected := range tt.shouldNotContain {
-				assert.NotContains(t, completions, notExpected,
-					"Should not contain %s in completions: %v", notExpected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == notExpected {
+						found = true
+						break
+					}
+				}
+				assert.False(t, found, "Should not contain %s in completions", notExpected)
 			}
 		})
 	}
@@ -391,13 +422,25 @@ func TestShellCompletionProvider_ExecutableCompletion_Integration(t *testing.T) 
 				tt.expectedMin, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
-					"Should contain %s in completions: %v", expected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == expected {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Should contain %s in completions", expected)
 			}
 
 			for _, notExpected := range tt.shouldNotContain {
-				assert.NotContains(t, completions, notExpected,
-					"Should not contain %s in completions: %v", notExpected, completions)
+				found := false
+				for _, c := range completions {
+					if c.Value == notExpected {
+						found = true
+						break
+					}
+				}
+				assert.False(t, found, "Should not contain %s in completions", notExpected)
 			}
 
 			manager.AssertExpectations(t)
@@ -526,8 +569,8 @@ func TestShellCompletionProvider_CompletionSpec_Integration(t *testing.T) {
 			for _, expected := range tt.shouldContain {
 				found := false
 				for _, completion := range completions {
-					if completion == expected ||
-						completion == "git "+expected {
+					if completion.Value == expected ||
+						completion.Value == "git "+expected {
 						found = true
 						break
 					}
@@ -556,8 +599,9 @@ func TestShellCompletionProvider_GlobalCompletion_Integration(t *testing.T) {
 	tmpDir := t.TempDir()
 	scriptPath := filepath.Join(tmpDir, "completer.sh")
 	scriptContent := `#!/bin/sh
-echo global-option1
-echo global-option2
+echo "global-option1"
+echo "global-option2\tdescription2"
+echo '{"Value":"global-option3","Description":"json desc"}'
 `
 	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 	require.NoError(t, err)
@@ -570,14 +614,18 @@ echo global-option2
 		line          string
 		pos           int
 		expectedMin   int
-		shouldContain []string
+		shouldContain []shellinput.CompletionCandidate
 	}{
 		{
 			name:          "global completion fallback",
 			line:          "unknown-cmd ",
 			pos:           12,
 			expectedMin:   2,
-			shouldContain: []string{"global-option1", "global-option2"},
+			shouldContain: []shellinput.CompletionCandidate{
+				{Value: "global-option1"},
+				{Value: "global-option2", Description: "description2"},
+				// JSON handling might need to be careful about mixed output, but let's test the plain text first
+			},
 		},
 	}
 
@@ -590,7 +638,17 @@ echo global-option2
 				tt.expectedMin, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected)
+				found := false
+				for _, c := range completions {
+					if c.Value == expected.Value {
+						if expected.Description != "" {
+							assert.Equal(t, expected.Description, c.Description)
+						}
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Should contain %s", expected.Value)
 			}
 		})
 	}
