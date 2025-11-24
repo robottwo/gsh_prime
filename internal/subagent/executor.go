@@ -18,6 +18,7 @@ import (
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/expand"
 	"mvdan.cc/sh/v3/interp"
+	"mvdan.cc/sh/v3/syntax"
 )
 
 // SubagentExecutor handles the execution of individual subagents
@@ -175,7 +176,13 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 		continueSession := true
 
 		// Set prompt for subagent execution
-		originalPrompt := e.runner.Vars["GSH_APROMPT"]
+		// We must use the runner to set the variable so that it persists correctly
+		// across tool execution calls (which use runner.Run and might overwrite Vars)
+		originalPromptVar := e.runner.Vars["GSH_APROMPT"]
+		originalPrompt := ""
+		if originalPromptVar.IsSet() {
+			originalPrompt = originalPromptVar.String()
+		}
 
 		// Determine subagent prompt (icon or name)
 		subagentPrompt := fmt.Sprintf("%s > ", e.subagent.Name) // Default: "Name > "
@@ -193,10 +200,29 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 			}
 		}
 
-		e.runner.Vars["GSH_APROMPT"] = expand.Variable{Kind: expand.String, Str: subagentPrompt}
+		// Helper to set variable via runner execution
+		setVar := func(name, value string) {
+			quotedValue, err := syntax.Quote(value, syntax.LangBash)
+			if err != nil {
+				// Fallback to simple quoting if syntax.Quote fails
+				quotedValue = fmt.Sprintf("'%s'", strings.ReplaceAll(value, "'", "'\\''"))
+			}
+			cmd := fmt.Sprintf("%s=%s", name, quotedValue)
+			p, err := syntax.NewParser().Parse(strings.NewReader(cmd), "")
+			if err == nil {
+				e.runner.Run(ctx, p)
+			} else {
+				// Fallback to direct assignment if parsing fails (unlikely)
+				e.runner.Vars[name] = expand.Variable{Kind: expand.String, Str: value}
+			}
+		}
+
+		// Set the prompt
+		setVar("GSH_APROMPT", subagentPrompt)
+
 		// Restore prompt when done
 		defer func() {
-			e.runner.Vars["GSH_APROMPT"] = originalPrompt
+			setVar("GSH_APROMPT", originalPrompt)
 		}()
 
 		for continueSession {

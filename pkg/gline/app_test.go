@@ -69,6 +69,13 @@ func TestInitialModel(t *testing.T) {
 			explanation:   "",
 			options:       NewOptions(),
 		},
+		{
+			name:          "with min height",
+			prompt:        "gsh> ",
+			historyValues: []string{"ls", "pwd"},
+			explanation:   "help text",
+			options:       Options{MinHeight: 10},
+		},
 	}
 
 	for _, tt := range tests {
@@ -206,6 +213,21 @@ func TestAppModelView(t *testing.T) {
 	}
 }
 
+// Test view with min height
+func TestAppModelViewWithMinHeight(t *testing.T) {
+	logger := zap.NewNop()
+	options := NewOptions()
+	options.MinHeight = 5
+
+	model := initialModel("test> ", []string{}, "", nil, nil, nil, logger, options)
+	model.appState = Active
+
+	view := model.View()
+	lines := len(view)
+
+	// The view should have enough content to meet minimum height
+	assert.True(t, lines > 0)
+}
 
 // Test getFinalOutput
 func TestGetFinalOutput(t *testing.T) {

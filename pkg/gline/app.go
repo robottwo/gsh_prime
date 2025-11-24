@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -41,7 +40,6 @@ type appModel struct {
 	// Multiline support
 	multilineState *MultilineState
 	originalPrompt string
-	height         int
 }
 
 type attemptPredictionMsg struct {
@@ -58,9 +56,6 @@ type attemptExplanationMsg struct {
 	stateId    int
 	prediction string
 }
-
-// helpHeaderRegex matches redundant help headers like "**@name** - "
-var helpHeaderRegex = regexp.MustCompile(`^\*\*[^\*]+\*\* - `)
 
 type setExplanationMsg struct {
 	stateId     int
@@ -150,7 +145,6 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 
 	case tea.WindowSizeMsg:
-		m.height = msg.Height
 		m.textInput.Width = msg.Width
 		m.explanationStyle = m.explanationStyle.Width(max(1, msg.Width-2))
 		m.completionStyle = m.completionStyle.Width(max(1, msg.Width-2))
@@ -271,7 +265,7 @@ func (m appModel) View() string {
 		return ""
 	}
 
-	var inputStr string
+	var s string
 
 	// If we have multiline content, show each line with its original prompt
 	if m.multilineState.IsActive() {
@@ -279,83 +273,40 @@ func (m appModel) View() string {
 		for i, line := range lines {
 			if i == 0 {
 				// First line uses the original prompt (textInput already adds the space)
-				inputStr += m.originalPrompt + line + "\n"
+				s += m.originalPrompt + line + "\n"
 			} else {
 				// Subsequent lines use continuation prompt
-				inputStr += "> " + line + "\n"
+				s += "> " + line + "\n"
 			}
 		}
 	}
 
 	// Add the current input line with appropriate prompt
-	inputStr += m.textInput.View()
+	s += m.textInput.View()
 
-	// Determine assistant content
-	var assistantContent string
+	// Add completion box if active
+	completionBox := m.textInput.CompletionBoxView()
+	if completionBox != "" {
+		s += "\n"
+		s += m.completionStyle.Render(completionBox)
+	}
 
-	// We need to handle truncation manually because lipgloss Height doesn't truncate automatically
-	availableHeight := m.options.AssistantHeight
-
+	// Add explanation (either from help box or prediction explanation)
 	helpBox := m.textInput.HelpBoxView()
-
-	// Determine available width for completion box
-	completionWidth := max(0, m.textInput.Width-4)
 	if helpBox != "" {
-		completionWidth = completionWidth / 2
+		s += "\n"
+		s += m.explanationStyle.Render(helpBox)
+	} else if m.explanation != "" {
+		s += "\n"
+		s += m.explanationStyle.Render(m.explanation)
 	}
 
-	completionBox := m.textInput.CompletionBoxView(availableHeight, completionWidth)
-
-	if completionBox != "" && helpBox != "" {
-		// Clean up help box text to avoid redundancy
-		// Remove headers like "**@name** - " or "**name** - " using regex
-		// This covers patterns like "**@debug-assistant** - " or "**@!new** - "
-		helpBox = helpHeaderRegex.ReplaceAllString(helpBox, "")
-
-		// Render side-by-side
-		halfWidth := completionWidth // Already calculated
-
-		leftStyle := lipgloss.NewStyle().
-			Width(halfWidth).
-			Height(availableHeight).
-			MaxHeight(availableHeight)
-
-		rightStyle := lipgloss.NewStyle().
-			Width(halfWidth).
-			Height(availableHeight).
-			MaxHeight(availableHeight).
-			PaddingLeft(1) // Add some spacing between columns
-
-		// Render completion on left, help on right
-		assistantContent = lipgloss.JoinHorizontal(lipgloss.Top,
-			leftStyle.Render(completionBox),
-			rightStyle.Render(helpBox))
-
-	} else if completionBox != "" {
-		assistantContent = completionBox
-	} else if helpBox != "" {
-		assistantContent = helpBox
-	} else {
-		assistantContent = m.explanation
+	numLines := strings.Count(s, "\n")
+	if numLines < m.options.MinHeight {
+		s += strings.Repeat("\n", m.options.MinHeight-numLines)
 	}
 
-	// Render Assistant Box
-	// Use a fixed height box
-	// Subtract 2 from width to account for terminal margins and prevent wrapping issues
-	assistantStyle := lipgloss.NewStyle().
-		Width(max(0, m.textInput.Width-2)).
-		Height(availableHeight).
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("62"))
-
-	lines := strings.Split(assistantContent, "\n")
-	if len(lines) > availableHeight {
-		lines = lines[:availableHeight]
-	}
-	truncatedContent := strings.Join(lines, "\n")
-	renderedAssistant := assistantStyle.Render(truncatedContent)
-
-	return inputStr + "\n" + renderedAssistant
+	return s
 }
 
 func (m appModel) getFinalOutput() string {

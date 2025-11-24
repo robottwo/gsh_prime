@@ -91,7 +91,7 @@ func RunInteractiveShell(
 
 		// Read input
 		options := gline.NewOptions()
-		options.AssistantHeight = environment.GetAssistantHeight(runner, logger)
+		options.MinHeight = environment.GetMinimumLines(runner, logger)
 		options.CompletionProvider = completionProvider
 
 		line, err := gline.Gline(prompt, historyCommands, "", predictor, explainer, analyticsManager, logger, options)
