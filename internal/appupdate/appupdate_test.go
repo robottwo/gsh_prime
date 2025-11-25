@@ -99,8 +99,8 @@ func TestReadLatestVersion(t *testing.T) {
 	mockFile, _ := os.CreateTemp("", "test-latest-version")
 	defer os.Remove(mockFile.Name())
 
-	mockFile.Write([]byte("1.2.3"))
-	mockFile.Seek(0, 0)
+	_, _ = mockFile.Write([]byte("1.2.3"))
+	_, _ = mockFile.Seek(0, 0)
 	mockFS.On("Open", core.LatestVersionFile()).Return(mockFile, nil)
 
 	result := readLatestVersion(mockFS)
@@ -118,8 +118,8 @@ func TestHandleSelfUpdate_UpdateNeeded(t *testing.T) {
 
 	mockFileForRead, _ := os.CreateTemp("", "test-latest-version-read")
 	defer os.Remove(mockFileForRead.Name())
-	mockFileForRead.Write([]byte("1.0.0"))
-	mockFileForRead.Seek(0, 0)
+	_, _ = mockFileForRead.Write([]byte("1.0.0"))
+	_, _ = mockFileForRead.Seek(0, 0)
 
 	mockFileForWrite, _ := os.CreateTemp("", "test-latest-version-write")
 	defer os.Remove(mockFileForWrite.Name())
@@ -160,8 +160,8 @@ func TestHandleSelfUpdate_NoUpdateNeeded(t *testing.T) {
 
 	mockFileForRead, _ := os.CreateTemp("", "test-latest-version-read")
 	defer os.Remove(mockFileForRead.Name())
-	mockFileForRead.Write([]byte("1.2.3"))
-	mockFileForRead.Seek(0, 0)
+	_, _ = mockFileForRead.Write([]byte("1.2.3"))
+	_, _ = mockFileForRead.Seek(0, 0)
 
 	mockFileForWrite, _ := os.CreateTemp("", "test-latest-version-write")
 	defer os.Remove(mockFileForWrite.Name())

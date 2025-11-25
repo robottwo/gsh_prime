@@ -66,8 +66,8 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 
 	// Change to temp directory for relative path tests
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
-	os.Chdir(tmpDir)
+	defer func() { _ = os.Chdir(originalDir) }()
+	_ = os.Chdir(tmpDir)
 
 	tests := []struct {
 		name           string
@@ -177,7 +177,7 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 	if homeDir, err := os.UserHomeDir(); err == nil {
 		// Create a test file in home directory for testing
 		testFile := filepath.Join(homeDir, ".test_completion_file")
-		os.WriteFile(testFile, []byte("test"), 0644)
+		_ = os.WriteFile(testFile, []byte("test"), 0644)
 		defer os.Remove(testFile)
 
 		tests = append(tests, struct {
@@ -432,7 +432,7 @@ func TestGetFileCompletions_Permissions_Integration(t *testing.T) {
 		err := os.WriteFile(filePath, []byte("content"), mode)
 		require.NoError(t, err)
 		// Clean up permissions after test
-		defer os.Chmod(filePath, 0644)
+		defer func() { _ = os.Chmod(filePath, 0644) }()
 	}
 
 	// Create directories with different permissions
@@ -447,7 +447,7 @@ func TestGetFileCompletions_Permissions_Integration(t *testing.T) {
 		err := os.MkdirAll(dirPath, mode)
 		require.NoError(t, err)
 		// Clean up permissions after test
-		defer os.Chmod(dirPath, 0755)
+		defer func() { _ = os.Chmod(dirPath, 0755) }()
 	}
 
 	tests := []struct {

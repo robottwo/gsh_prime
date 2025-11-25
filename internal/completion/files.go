@@ -10,7 +10,6 @@ import (
 type fileCompleter func(prefix string, currentDirectory string) []string
 
 // commandCompleter is the function type for command completion
-type commandCompleter func(prefix string) []string
 
 // getFileCompletions is the default implementation of file completion
 var getFileCompletions fileCompleter = func(prefix string, currentDirectory string) []string {

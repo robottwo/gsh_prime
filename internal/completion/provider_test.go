@@ -393,7 +393,7 @@ func setupTestAliases(runner *interp.Runner) {
 		}
 
 		// Execute the alias command to set up the alias in the runner
-		runner.Run(context.Background(), prog)
+		_ = runner.Run(context.Background(), prog)
 	}
 }
 

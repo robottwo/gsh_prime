@@ -209,7 +209,7 @@ func TestGetApprovedBashCommandRegex(t *testing.T) {
 
 	// Create logger
 	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Create a test runner
 	env := expand.ListEnviron(os.Environ()...)
@@ -254,7 +254,7 @@ func TestGetApprovedBashCommandRegexWithEnvironmentPatterns(t *testing.T) {
 
 	// Create logger
 	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Create a test runner with environment patterns
 	env := expand.ListEnviron(os.Environ()...)
@@ -336,7 +336,7 @@ func TestFilterDangerousPatterns(t *testing.T) {
 func TestGetApprovedBashCommandRegexInvalidJSON(t *testing.T) {
 	// Create logger
 	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Create a test runner with invalid JSON
 	env := expand.ListEnviron(os.Environ()...)
@@ -380,7 +380,7 @@ func TestGetApprovedBashCommandRegexCaching(t *testing.T) {
 
 	// Create logger
 	logger, _ := zap.NewDevelopment()
-	defer logger.Sync()
+	defer func() { _ = logger.Sync() }()
 
 	// Create a test runner with isolated environment (no system env vars)
 	runner, err := interp.New()

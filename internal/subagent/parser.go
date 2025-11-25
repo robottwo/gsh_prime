@@ -61,7 +61,7 @@ func parseClaudeConfig(filePath string, content []byte, modTime time.Time) (*Sub
 
 	// Check if file has YAML frontmatter
 	if !strings.HasPrefix(contentStr, "---\n") {
-		return nil, fmt.Errorf("Claude configuration file must start with YAML frontmatter: %s", filePath)
+		return nil, fmt.Errorf("claude configuration file must start with YAML frontmatter: %s", filePath)
 	}
 
 	// Find end of frontmatter
