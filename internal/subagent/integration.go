@@ -98,6 +98,10 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 		if strings.HasPrefix(content, " ") || content == "" {
 			prompt := strings.TrimSpace(content)
 
+			if prompt == "" {
+				return "", "", true // Explicit but no prompt - will trigger error in HandleCommand
+			}
+
 			// Pattern 3: Intelligent auto-detection using LLM
 			// Use the intelligent selector to find the best subagent for the entire message
 			availableSubagents := si.manager.GetAllSubagents()
