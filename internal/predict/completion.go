@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
 	"github.com/atinylittleshell/gsh/internal/history"
@@ -131,7 +132,10 @@ Candidates: ["-la", "-lh"] (NOT "ls -la")
 		request.Temperature = float32(*p.temperature)
 	}
 
-	chatCompletion, err := p.llmClient.CreateChatCompletion(context.TODO(), request)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	chatCompletion, err := p.llmClient.CreateChatCompletion(ctx, request)
 
 	if err != nil {
 		return nil, err
