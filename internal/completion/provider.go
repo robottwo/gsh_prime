@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -18,6 +19,7 @@ import (
 
 // Function variables for mocking in tests
 var osReadDir = os.ReadDir
+var execLookPath = exec.LookPath
 
 // SubagentInfo represents minimal information about a subagent for completion purposes
 type SubagentInfo struct {
@@ -40,6 +42,11 @@ type ShellCompletionProvider struct {
 	CompletionManager CompletionManagerInterface
 	Runner            *interp.Runner
 	SubagentProvider  SubagentProvider // Optional, for @ completions
+
+	// Default completers
+	defaultCompleter *DefaultCompleter
+	gitCompleter     *GitCompleter
+	staticCompleter  *StaticCompleter
 }
 
 // NewShellCompletionProvider creates a new ShellCompletionProvider
@@ -48,6 +55,10 @@ func NewShellCompletionProvider(manager CompletionManagerInterface, runner *inte
 		CompletionManager: manager,
 		Runner:            runner,
 		SubagentProvider:  nil, // Set later via SetSubagentProvider if needed
+
+		defaultCompleter: &DefaultCompleter{},
+		gitCompleter:     &GitCompleter{},
+		staticCompleter:  NewStaticCompleter(),
 	}
 }
 
@@ -73,80 +84,114 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellin
 	// Get the command (first word)
 	command := words[0]
 
-	// Look up completion spec for this command
+	// 1. Explicit Spec: Look up completion spec for this command
 	spec, ok := p.CompletionManager.GetSpec(command)
-	if !ok {
-		// Check for global programmable completion command
-		globalCompleter := os.Getenv("GSH_COMPLETION_COMMAND")
-		if globalCompleter != "" {
-			// Create a temporary spec for the global completer
-			globalSpec := CompletionSpec{
-				Command: command,
-				Type:    CommandCompletion,
-				Value:   globalCompleter,
-			}
-
-			suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, globalSpec, words, truncatedLine, pos)
-			if err == nil && len(suggestions) > 0 {
-				return suggestions
-			}
-			// If global completer returns no suggestions or errors, fall back to default behavior
+	if ok {
+		// Execute the completion
+		suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, truncatedLine, pos)
+		if err == nil && suggestions != nil {
+			return suggestions
 		}
+	}
 
-		// No specific completion spec, check if we should complete command names
-		if len(words) == 1 && !strings.HasSuffix(truncatedLine, " ") {
-			// Single word that doesn't end with space
-			// Check if this looks like a path-based command
-			if p.isPathBasedCommand(command) {
-				// For path-based commands, complete with executable files in that path
-				executableCompletions := p.getExecutableCompletions(command)
-				if len(executableCompletions) > 0 {
-					return toCandidates(executableCompletions)
-				}
-			} else {
-				// Regular command name completion
-				commandCompletions := p.getAvailableCommands(command)
-				if len(commandCompletions) > 0 {
-					return toCandidates(commandCompletions)
-				}
-			}
-		}
-
-		// No command matches or multiple words, try file path completion
-		var prefix string
+	// 2. Built-in Defaults (Git, cd, etc.)
+	if command == "git" {
+		// Git args are words[1:]
+		gitArgs := []string{}
 		if len(words) > 1 {
-			// Get the last word as the prefix for file completion
-			prefix = words[len(words)-1]
-		} else if strings.HasSuffix(truncatedLine, " ") {
-			// If line ends with space, use empty prefix to list all files
-			prefix = ""
-		} else {
-			return make([]shellinput.CompletionCandidate, 0)
+			gitArgs = words[1:]
+		}
+		if suggestions := p.gitCompleter.GetCompletions(gitArgs); len(suggestions) > 0 {
+			return suggestions
+		}
+	}
+
+	// Check DefaultCompleter (cd, ssh, make, etc.)
+	// default args words[1:]
+	defaultArgs := []string{}
+	if len(words) > 1 {
+		defaultArgs = words[1:]
+	}
+	if suggestions, found := p.defaultCompleter.GetCompletions(command, defaultArgs, truncatedLine, pos); found {
+		if suggestions != nil {
+			return suggestions
+		}
+		// If found but nil, it means we handled it but found no matches (or defer fallback)
+		// The default implementation returns nil, false if not handled.
+	}
+
+	// Check StaticCompleter (docker, npm, etc.)
+	if suggestions := p.staticCompleter.GetCompletions(command, defaultArgs); len(suggestions) > 0 {
+		return suggestions
+	}
+
+	// 3. Global Programmable Fallback (GSH_COMPLETION_COMMAND or Auto-Discovery)
+	globalCompleter := os.Getenv("GSH_COMPLETION_COMMAND")
+	if globalCompleter == "" {
+		// Auto-discovery: Check for carapace
+		if path, err := execLookPath("carapace"); err == nil {
+			globalCompleter = path
+		}
+	}
+
+	if globalCompleter != "" {
+		// Create a temporary spec for the global completer
+		globalSpec := CompletionSpec{
+			Command: command,
+			Type:    CommandCompletion,
+			Value:   globalCompleter,
 		}
 
-		completions := getFileCompletions(prefix, environment.GetPwd(p.Runner))
+		suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, globalSpec, words, truncatedLine, pos)
+		if err == nil && len(suggestions) > 0 {
+			return suggestions
+		}
+	}
 
-		// Quote completions that contain spaces, but don't add command prefix
-		// The completion handler will replace only the current word (file path)
-		for i, completion := range completions {
-			if strings.Contains(completion, " ") {
-				// Quote completions that contain spaces
-				completions[i] = "\"" + completion + "\""
+	// 4. Fallback: File/Command Completion
+
+	// No specific completion spec, check if we should complete command names
+	if len(words) == 1 && !strings.HasSuffix(truncatedLine, " ") {
+		// Single word that doesn't end with space
+		// Check if this looks like a path-based command
+		if p.isPathBasedCommand(command) {
+			// For path-based commands, complete with executable files in that path
+			executableCompletions := p.getExecutableCompletions(command)
+			if len(executableCompletions) > 0 {
+				return toCandidates(executableCompletions)
+			}
+		} else {
+			// Regular command name completion
+			commandCompletions := p.getAvailableCommands(command)
+			if len(commandCompletions) > 0 {
+				return toCandidates(commandCompletions)
 			}
 		}
-		return toCandidates(completions)
 	}
 
-	// Execute the completion
-	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, truncatedLine, pos)
-	if err != nil {
+	// No command matches or multiple words, try file path completion
+	var prefix string
+	if len(words) > 1 {
+		// Get the last word as the prefix for file completion
+		prefix = words[len(words)-1]
+	} else if strings.HasSuffix(truncatedLine, " ") {
+		// If line ends with space, use empty prefix to list all files
+		prefix = ""
+	} else {
 		return make([]shellinput.CompletionCandidate, 0)
 	}
 
-	if suggestions == nil {
-		return make([]shellinput.CompletionCandidate, 0)
+	completions := getFileCompletions(prefix, environment.GetPwd(p.Runner))
+
+	// Quote completions that contain spaces, but don't add command prefix
+	// The completion handler will replace only the current word (file path)
+	for i, completion := range completions {
+		if strings.Contains(completion, " ") {
+			// Quote completions that contain spaces
+			completions[i] = "\"" + completion + "\""
+		}
 	}
-	return suggestions
+	return toCandidates(completions)
 }
 
 // toCandidates converts a list of strings to CompletionCandidate list
