@@ -259,10 +259,8 @@ func TestGetCompletions(t *testing.T) {
 				manager.On("GetSpec", "cd").Return(CompletionSpec{}, false)
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "folder1/"},
-				{Value: "folder2/"},
-				{Value: "file1.txt"},
-				{Value: "file2.txt"},
+				{Value: "folder1/", Description: "Directory"},
+				{Value: "folder2/", Description: "Directory"},
 			},
 		},
 		{
@@ -273,10 +271,8 @@ func TestGetCompletions(t *testing.T) {
 				manager.On("GetSpec", "cd").Return(CompletionSpec{}, false)
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "folder1/"},
-				{Value: "folder2/"},
-				{Value: "file1.txt"},
-				{Value: "file2.txt"},
+				{Value: "folder1/", Description: "Directory"},
+				{Value: "folder2/", Description: "Directory"},
 			},
 		},
 		{

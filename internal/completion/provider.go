@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -12,15 +13,13 @@ import (
 	"unicode"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/history"
-	"github.com/atinylittleshell/gsh/internal/predict"
 	"github.com/atinylittleshell/gsh/pkg/shellinput"
-	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )
 
 // Function variables for mocking in tests
 var osReadDir = os.ReadDir
+var execLookPath = exec.LookPath
 
 // SubagentInfo represents minimal information about a subagent for completion purposes
 type SubagentInfo struct {
@@ -40,41 +39,32 @@ type SubagentProvider interface {
 
 // ShellCompletionProvider implements shellinput.CompletionProvider using the shell's CompletionManager
 type ShellCompletionProvider struct {
-	CompletionManager   CompletionManagerInterface
-	Runner              *interp.Runner
-	SubagentProvider    SubagentProvider // Optional, for @ completions
-	CompletionPredictor *predict.LLMCompletionPredictor
+	CompletionManager CompletionManagerInterface
+	Runner            *interp.Runner
+	SubagentProvider  SubagentProvider // Optional, for @ completions
+
+	// Default completers
+	defaultCompleter *DefaultCompleter
+	gitCompleter     *GitCompleter
+	staticCompleter  *StaticCompleter
 }
 
 // NewShellCompletionProvider creates a new ShellCompletionProvider
-func NewShellCompletionProvider(
-	manager CompletionManagerInterface,
-	runner *interp.Runner,
-	historyManager *history.HistoryManager,
-	logger *zap.Logger,
-) *ShellCompletionProvider {
-	var completionPredictor *predict.LLMCompletionPredictor
-	if historyManager != nil && logger != nil && runner != nil {
-		completionPredictor = predict.NewLLMCompletionPredictor(runner, historyManager, logger)
-	}
-
+func NewShellCompletionProvider(manager CompletionManagerInterface, runner *interp.Runner) *ShellCompletionProvider {
 	return &ShellCompletionProvider{
-		CompletionManager:   manager,
-		Runner:              runner,
-		SubagentProvider:    nil, // Set later via SetSubagentProvider if needed
-		CompletionPredictor: completionPredictor,
+		CompletionManager: manager,
+		Runner:            runner,
+		SubagentProvider:  nil, // Set later via SetSubagentProvider if needed
+
+		defaultCompleter: &DefaultCompleter{},
+		gitCompleter:     &GitCompleter{},
+		staticCompleter:  NewStaticCompleter(),
 	}
 }
 
 // SetSubagentProvider sets the subagent provider for @ completions
 func (p *ShellCompletionProvider) SetSubagentProvider(provider SubagentProvider) {
 	p.SubagentProvider = provider
-}
-
-func (p *ShellCompletionProvider) UpdateContext(context *map[string]string) {
-	if p.CompletionPredictor != nil {
-		p.CompletionPredictor.UpdateContext(context)
-	}
 }
 
 // GetCompletions returns completion suggestions for the current input line
@@ -94,88 +84,114 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellin
 	// Get the command (first word)
 	command := words[0]
 
-	// Look up completion spec for this command
+	// 1. Explicit Spec: Look up completion spec for this command
 	spec, ok := p.CompletionManager.GetSpec(command)
-	if !ok {
-		// Check for global programmable completion command
-		globalCompleter := os.Getenv("GSH_COMPLETION_COMMAND")
-		if globalCompleter != "" {
-			// Create a temporary spec for the global completer
-			globalSpec := CompletionSpec{
-				Command: command,
-				Type:    CommandCompletion,
-				Value:   globalCompleter,
-			}
-
-			suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, globalSpec, words, truncatedLine, pos)
-			if err == nil && len(suggestions) > 0 {
-				return suggestions
-			}
-			// If global completer returns no suggestions or errors, fall back to default behavior
+	if ok {
+		// Execute the completion
+		suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, truncatedLine, pos)
+		if err == nil && suggestions != nil {
+			return suggestions
 		}
+	}
 
-		// No specific completion spec, check if we should complete command names
-		if len(words) == 1 && !strings.HasSuffix(truncatedLine, " ") {
-			// Single word that doesn't end with space
-			// Check if this looks like a path-based command
-			if p.isPathBasedCommand(command) {
-				// For path-based commands, complete with executable files in that path
-				executableCompletions := p.getExecutableCompletions(command)
-				if len(executableCompletions) > 0 {
-					return toCandidates(executableCompletions)
-				}
-			} else {
-				// Regular command name completion
-				commandCompletions := p.getAvailableCommands(command)
-				if len(commandCompletions) > 0 {
-					return toCandidates(commandCompletions)
-				}
-			}
-		}
-
-		// No command matches or multiple words, try LLM completion
-		if p.CompletionPredictor != nil {
-			completions, err := p.CompletionPredictor.Predict(line[:pos])
-			if err == nil && len(completions) > 0 {
-				return toCandidates(completions)
-			}
-		}
-
-		// Fallback to file completions if LLM fails or is not available
-		var prefix string
+	// 2. Built-in Defaults (Git, cd, etc.)
+	if command == "git" {
+		// Git args are words[1:]
+		gitArgs := []string{}
 		if len(words) > 1 {
-			// Get the last word as the prefix for file completion
-			prefix = words[len(words)-1]
-		} else if strings.HasSuffix(truncatedLine, " ") {
-			// If line ends with space, use empty prefix to list all files
-			prefix = ""
-		} else {
-			return make([]shellinput.CompletionCandidate, 0)
+			gitArgs = words[1:]
+		}
+		if suggestions := p.gitCompleter.GetCompletions(gitArgs); len(suggestions) > 0 {
+			return suggestions
+		}
+	}
+
+	// Check DefaultCompleter (cd, ssh, make, etc.)
+	// default args words[1:]
+	defaultArgs := []string{}
+	if len(words) > 1 {
+		defaultArgs = words[1:]
+	}
+	if suggestions, found := p.defaultCompleter.GetCompletions(command, defaultArgs, truncatedLine, pos); found {
+		if suggestions != nil {
+			return suggestions
+		}
+		// If found but nil, it means we handled it but found no matches (or defer fallback)
+		// The default implementation returns nil, false if not handled.
+	}
+
+	// Check StaticCompleter (docker, npm, etc.)
+	if suggestions := p.staticCompleter.GetCompletions(command, defaultArgs); len(suggestions) > 0 {
+		return suggestions
+	}
+
+	// 3. Global Programmable Fallback (GSH_COMPLETION_COMMAND or Auto-Discovery)
+	globalCompleter := os.Getenv("GSH_COMPLETION_COMMAND")
+	if globalCompleter == "" {
+		// Auto-discovery: Check for carapace
+		if path, err := execLookPath("carapace"); err == nil {
+			globalCompleter = path
+		}
+	}
+
+	if globalCompleter != "" {
+		// Create a temporary spec for the global completer
+		globalSpec := CompletionSpec{
+			Command: command,
+			Type:    CommandCompletion,
+			Value:   globalCompleter,
 		}
 
-		completions := getFileCompletions(prefix, environment.GetPwd(p.Runner))
+		suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, globalSpec, words, truncatedLine, pos)
+		if err == nil && len(suggestions) > 0 {
+			return suggestions
+		}
+	}
 
-		// Quote completions that contain spaces, but don't add command prefix
-		// The completion handler will replace only the current word (file path)
-		for i, completion := range completions {
-			if strings.Contains(completion, " ") {
-				// Quote completions that contain spaces
-				completions[i] = "\"" + completion + "\""
+	// 4. Fallback: File/Command Completion
+
+	// No specific completion spec, check if we should complete command names
+	if len(words) == 1 && !strings.HasSuffix(truncatedLine, " ") {
+		// Single word that doesn't end with space
+		// Check if this looks like a path-based command
+		if p.isPathBasedCommand(command) {
+			// For path-based commands, complete with executable files in that path
+			executableCompletions := p.getExecutableCompletions(command)
+			if len(executableCompletions) > 0 {
+				return toCandidates(executableCompletions)
+			}
+		} else {
+			// Regular command name completion
+			commandCompletions := p.getAvailableCommands(command)
+			if len(commandCompletions) > 0 {
+				return toCandidates(commandCompletions)
 			}
 		}
-		return toCandidates(completions)
 	}
 
-	// Execute the completion
-	suggestions, err := p.CompletionManager.ExecuteCompletion(context.Background(), p.Runner, spec, words, truncatedLine, pos)
-	if err != nil {
+	// No command matches or multiple words, try file path completion
+	var prefix string
+	if len(words) > 1 {
+		// Get the last word as the prefix for file completion
+		prefix = words[len(words)-1]
+	} else if strings.HasSuffix(truncatedLine, " ") {
+		// If line ends with space, use empty prefix to list all files
+		prefix = ""
+	} else {
 		return make([]shellinput.CompletionCandidate, 0)
 	}
 
-	if suggestions == nil {
-		return make([]shellinput.CompletionCandidate, 0)
+	completions := getFileCompletions(prefix, environment.GetPwd(p.Runner))
+
+	// Quote completions that contain spaces, but don't add command prefix
+	// The completion handler will replace only the current word (file path)
+	for i, completion := range completions {
+		if strings.Contains(completion, " ") {
+			// Quote completions that contain spaces
+			completions[i] = "\"" + completion + "\""
+		}
 	}
-	return suggestions
+	return toCandidates(completions)
 }
 
 // toCandidates converts a list of strings to CompletionCandidate list
@@ -708,14 +724,14 @@ func (p *ShellCompletionProvider) getBuiltinCommandHelp(command string) string {
 	case "subagent-info":
 		return "**@!subagent-info <name>** - Show detailed information about a subagent\n\nDisplays comprehensive information about a specific subagent including tools, file restrictions, and configuration."
 	case "":
-		return "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents"
+		return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details"
 	default:
 		// Check for partial matches
 		builtinCommands := []string{"new", "tokens", "subagents", "reload-subagents", "subagent-info"}
 		for _, cmd := range builtinCommands {
 			if strings.HasPrefix(cmd, command) {
 				// Partial match, show general help
-				return "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents"
+				return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details"
 			}
 		}
 		return ""
@@ -786,22 +802,35 @@ func (p *ShellCompletionProvider) getMacroHelp(macroName string) string {
 
 // getSubagentHelp returns help information for subagents
 func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
-	if subagentName == "" {
-		return "**@Subagents** - Invoke a specialized assistant\nUse '@<name>' for a specific agent, '@@' to auto-select,\nor '@!' for agent commands. Tab-complete for a list."
-	}
-
-	// The user typed "@@", which is passed as subagentName="@"
-	if subagentName == "@" {
-		return "**@@Auto-Select** - Let gsh choose the best subagent\ngsh will analyze your prompt and select the most\nappropriate subagent to handle the command."
-	}
-
-	// If no subagent manager is available, we can't provide more specific help
+	// If no subagent manager is available, return generic help
 	if p.SubagentProvider == nil {
+		if subagentName == "" {
+			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use @<subagent-name> to invoke a subagent."
+		}
 		return ""
 	}
 
 	// Get all available subagents
 	subagents := p.SubagentProvider.GetAllSubagents()
+
+	if subagentName == "" {
+		// Show general subagent help
+		if len(subagents) == 0 {
+			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagents are currently configured."
+		}
+
+		var subagentList []string
+		for id, subagent := range subagents {
+			description := subagent.Description
+			if description == "" {
+				description = "No description available"
+			}
+			subagentList = append(subagentList, fmt.Sprintf("• **@%s** - %s", id, description))
+		}
+		sort.Strings(subagentList)
+
+		return "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n" + strings.Join(subagentList, "\n")
+	}
 
 	// Check for exact match first
 	if subagent, ok := subagents[subagentName]; ok {
