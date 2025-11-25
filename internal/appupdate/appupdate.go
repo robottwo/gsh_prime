@@ -3,6 +3,7 @@ package appupdate
 import (
 	"bytes"
 	"context"
+	"os"
 	"github.com/atinylittleshell/gsh/internal/filesystem"
 	"io"
 	"strings"
@@ -23,6 +24,9 @@ func HandleSelfUpdate(
 	updater Updater,
 ) chan string {
 	resultChannel := make(chan string)
+
+	// Trim any whitespace or newlines from version strings
+	currentVersion = strings.TrimSpace(currentVersion)
 
 	currentSemVer, err := semver.NewVersion(currentVersion)
 	if err != nil {
@@ -131,7 +135,9 @@ func fetchAndSaveLatestVersion(resultChannel chan string, logger *zap.Logger, fs
 	}
 
 	recordFilePath := core.LatestVersionFile()
-	file, err := fs.Create(recordFilePath)
+
+	// Use OpenFile to set specific permissions (0600)
+	file, err := fs.OpenFile(recordFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		logger.Error("failed to save latest version", zap.Error(err))
 		return
@@ -140,7 +146,9 @@ func fetchAndSaveLatestVersion(resultChannel chan string, logger *zap.Logger, fs
 		_ = file.Close()
 	}()
 
-	_, err = file.WriteString(latest.Version())
+	// Trim whitespace before writing
+	versionToWrite := strings.TrimSpace(latest.Version())
+	_, err = file.WriteString(versionToWrite)
 	if err != nil {
 		logger.Error("failed to save latest version", zap.Error(err))
 		return

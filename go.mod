@@ -1,8 +1,6 @@
 module github.com/atinylittleshell/gsh
 
-go 1.23.0
-
-toolchain go1.24.3
+go 1.24.9
 
 require (
 	github.com/Masterminds/semver/v3 v3.3.0
@@ -204,7 +202,7 @@ require (
 	github.com/timonwong/loggercheck v0.10.1 // indirect
 	github.com/tomarrell/wrapcheck/v2 v2.10.0 // indirect
 	github.com/tommy-muehle/go-mnd/v2 v2.5.1 // indirect
-	github.com/ulikunitz/xz v0.5.12 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/ultraware/funlen v0.2.0 // indirect
 	github.com/ultraware/whitespace v0.2.0 // indirect
 	github.com/uudashr/gocognit v1.2.0 // indirect

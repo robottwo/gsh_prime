@@ -327,7 +327,7 @@ func TestEditFileToolWithRelativePath(t *testing.T) {
 	// Create a temporary file for testing
 	tempFile, err := os.CreateTemp("", "test_edit_relative")
 	assert.NoError(t, err)
-	tempFile.Close() // Close the file handle
+	_ = tempFile.Close() // Close the file handle
 	defer os.Remove(tempFile.Name())
 
 	originalContent := "Test content for relative path"
