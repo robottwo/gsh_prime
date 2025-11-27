@@ -754,7 +754,7 @@ func (p *ShellCompletionProvider) getMacroHelp(macroName string) string {
 }
 
 // getSubagentHelp returns help information for subagents
-func (p *ShellCompletion-Provider) getSubagentHelp(subagentName string) string {
+func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
 	if subagentName == "" {
 		return "**@Subagents** - Invoke a specialized assistant\nUse '@<name>' for a specific agent, '@@' to auto-select,\nor '@!' for agent commands. Tab-complete for a list."
 	}
