@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 	"runtime"
+	"path/filepath"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -130,9 +131,19 @@ func TestGetCompletions(t *testing.T) {
 	provider := NewShellCompletionProvider(manager, runner)
 
 	// Helper to determine expected /bin/ completions based on OS
-	// On Windows, we might need to adjust expectations or skip this test case if the mock isn't working as intended due to path handling
-	// But since we mocked osReadDir, it should work if the provider calls it correctly
-	binCompletions := []string{"/bin/bash", "/bin/cat", "/bin/ls", "/bin/sh"}
+	var binCompletions []string
+	if runtime.GOOS == "windows" {
+		// On Windows, paths will be normalized with backslashes
+		// Using filepath.Join to construct expected Windows paths
+		binCompletions = []string{
+			filepath.Join("\\bin", "bash"),
+			filepath.Join("\\bin", "cat"),
+			filepath.Join("\\bin", "ls"),
+			filepath.Join("\\bin", "sh"),
+		}
+	} else {
+		binCompletions = []string{"/bin/bash", "/bin/cat", "/bin/ls", "/bin/sh"}
+	}
 
 	tests := []struct {
 		name     string
@@ -370,15 +381,6 @@ func TestGetCompletions(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		// Skip unix path test on Windows if we can't easily mock everything properly
-		// The /bin/ test case relies on path separators being handled correctly in the provider
-		// Since we updated the provider to use filepath.FromSlash, "/bin/" becomes "\bin\" on Windows
-		// The mockOsReadDir needs to handle this.
-		if runtime.GOOS == "windows" && tt.name == "path-based command completion with /bin/" {
-			// We are testing if our fix for mockOsReadDir works. If not, we skip.
-			// But better to try to make it pass.
-		}
-
 		t.Run(tt.name, func(t *testing.T) {
 			manager.ExpectedCalls = nil
 			manager.Calls = nil
