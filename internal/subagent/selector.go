@@ -39,15 +39,15 @@ func NewSubagentSelector(runner *interp.Runner, logger *zap.Logger) *SubagentSel
 }
 
 // SelectBestSubagent uses LLM to determine the most appropriate subagent for the given prompt
-func (s *SubagentSelector) SelectBestSubagent(prompt string, availableSubagents map[string]*Subagent) (*Subagent, error) {
+func (s *SubagentSelector) SelectBestSubagent(prompt string, availableSubagents map[string]*Subagent) (*Subagent, *SelectionResult, error) {
 	if len(availableSubagents) == 0 {
-		return nil, fmt.Errorf("no subagents available")
+		return nil, nil, fmt.Errorf("no subagents available")
 	}
 
 	// If only one subagent available, return it
 	if len(availableSubagents) == 1 {
 		for _, subagent := range availableSubagents {
-			return subagent, nil
+			return subagent, nil, nil
 		}
 	}
 
@@ -61,21 +61,21 @@ func (s *SubagentSelector) SelectBestSubagent(prompt string, availableSubagents 
 	result, err := s.callLLMForSelection(systemPrompt, prompt)
 	if err != nil {
 		s.logger.Warn("LLM selection failed, falling back to string matching", zap.Error(err))
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Find and return the selected subagent
-	if result.SubagentID != "" {
+	if result.SubagentID != "" && result.SubagentID != "none" {
 		if subagent, exists := availableSubagents[result.SubagentID]; exists {
 			s.logger.Debug("LLM selected subagent",
 				zap.String("subagentID", result.SubagentID),
 				zap.Int("confidence", result.Confidence),
 				zap.String("reasoning", result.Reasoning))
-			return subagent, nil
+			return subagent, result, nil
 		}
 	}
 
-	return nil, fmt.Errorf("LLM selected unknown subagent: %s", result.SubagentID)
+	return nil, result, fmt.Errorf("LLM selected unknown subagent: %s", result.SubagentID)
 }
 
 // buildSubagentContext creates a description of available subagents for the LLM

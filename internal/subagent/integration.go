@@ -47,11 +47,15 @@ func (si *SubagentIntegration) HandleCommand(chatMessage string) (bool, <-chan s
 	si.ensureSubagentsUpToDate()
 
 	// Check for subagent invocation patterns
-	subagentID, prompt, isExplicit := si.parseSubagentCommand(chatMessage)
+	subagentID, prompt, isExplicit, selectionResult := si.parseSubagentCommand(chatMessage)
 
 	// If explicit selection failed (e.g. @@ was used but no subagent found)
 	if isExplicit && subagentID == "" {
-		return true, nil, nil, fmt.Errorf("auto-selection failed: no suitable subagent found")
+		reason := "no suitable subagent found"
+		if selectionResult != nil && selectionResult.Reasoning != "" {
+			reason = selectionResult.Reasoning
+		}
+		return true, nil, nil, fmt.Errorf("auto-selection failed: %s", reason)
 	}
 
 	if subagentID == "" {
@@ -85,8 +89,8 @@ func (si *SubagentIntegration) HandleCommand(chatMessage string) (bool, <-chan s
 }
 
 // parseSubagentCommand parses various subagent invocation patterns
-// Returns: (subagentID, prompt, isExplicit)
-func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string, string, bool) {
+// Returns: (subagentID, prompt, isExplicit, selectionResult)
+func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string, string, bool, *SelectionResult) {
 	chatMessage = strings.TrimSpace(chatMessage)
 
 	// Handle @@ invocation (chatMessage starts with @)
@@ -99,23 +103,24 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 			prompt := strings.TrimSpace(content)
 
 			if prompt == "" {
-				return "", "", true // Explicit but no prompt - will trigger error in HandleCommand
+				return "", "", true, nil // Explicit but no prompt - will trigger error in HandleCommand
 			}
 
 			// Pattern 3: Intelligent auto-detection using LLM
 			// Use the intelligent selector to find the best subagent for the entire message
 			availableSubagents := si.manager.GetAllSubagents()
 			if len(availableSubagents) > 0 {
-				selectedSubagent, err := si.selector.SelectBestSubagent(prompt, availableSubagents)
+				selectedSubagent, result, err := si.selector.SelectBestSubagent(prompt, availableSubagents)
 				if err == nil && selectedSubagent != nil {
-					return selectedSubagent.ID, prompt, true
+					return selectedSubagent.ID, prompt, true, result
 				}
 				// Log the error but continue
 				si.logger.Debug("Intelligent subagent selection failed", zap.Error(err))
+				return "", prompt, true, result
 			}
 
 			// Explicit @@ was used but failed to select
-			return "", prompt, true
+			return "", prompt, true, nil
 		}
 
 		// Otherwise it's @@<subagent> -> Explicit selection (Pattern 1 logic)
@@ -126,7 +131,7 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 		if len(parts) > 1 {
 			prompt = parts[1]
 		}
-		return subagentID, prompt, true
+		return subagentID, prompt, true, nil
 	}
 
 	// Pattern 2: @:mode-slug prompt (Roo Code style)
@@ -138,7 +143,7 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 			if len(parts) > 1 {
 				prompt = parts[1]
 			}
-			return subagentID, prompt, true
+			return subagentID, prompt, true, nil
 		}
 	}
 
@@ -151,11 +156,11 @@ func (si *SubagentIntegration) parseSubagentCommand(chatMessage string) (string,
 			prompt := strings.Join(words[1:], " ")
 			si.logger.Debug("Used fallback string matching for subagent selection",
 				zap.String("subagent", subagent.ID))
-			return subagent.ID, prompt, false
+			return subagent.ID, prompt, false, nil
 		}
 	}
 
-	return "", "", false // Not a subagent command
+	return "", "", false, nil // Not a subagent command
 }
 
 // getExecutor gets or creates an executor for a subagent

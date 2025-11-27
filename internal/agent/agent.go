@@ -35,6 +35,8 @@ type Agent struct {
 	lastRequestCompletionTokens int
 	sessionPromptTokens         int
 	sessionCompletionTokens     int
+
+	lastMessage string
 }
 
 func NewAgent(
@@ -104,6 +106,7 @@ func (agent *Agent) ResetChat() {
 	agent.lastRequestCompletionTokens = 0
 	agent.sessionPromptTokens = 0
 	agent.sessionCompletionTokens = 0
+	agent.lastMessage = ""
 
 	agent.messages = []openai.ChatCompletionMessage{
 		{
@@ -224,13 +227,12 @@ func (agent *Agent) Chat(prompt string) (<-chan string, error) {
 			agent.messages = append(agent.messages, msg.Message)
 
 			if msg.FinishReason == "stop" || msg.FinishReason == "end_turn" || msg.FinishReason == "tool_calls" || msg.FinishReason == "function_call" {
-				if msg.Message.Content != "" {
-					responseChannel <- strings.TrimSpace(msg.Message.Content)
-				}
-
 				if len(msg.Message.ToolCalls) > 0 {
 					allToolCallsSucceeded := true
 					for _, toolCall := range msg.Message.ToolCalls {
+						// Flush any pending messages before handling the tool call.
+						agent.flush(strings.TrimSpace(msg.Message.Content), responseChannel)
+
 						if !agent.handleToolCall(toolCall) {
 							allToolCallsSucceeded = false
 						}
@@ -239,6 +241,9 @@ func (agent *Agent) Chat(prompt string) (<-chan string, error) {
 					if allToolCallsSucceeded {
 						continueSession = true
 					}
+				} else {
+					// Flush any pending messages.
+					agent.flush(strings.TrimSpace(msg.Message.Content), responseChannel)
 				}
 			} else if msg.FinishReason != "" {
 				agent.logger.Warn("LLM chat response finished for unexpected reason", zap.String("reason", string(msg.FinishReason)))
@@ -247,6 +252,13 @@ func (agent *Agent) Chat(prompt string) (<-chan string, error) {
 	}()
 
 	return responseChannel, nil
+}
+
+func (agent *Agent) flush(message string, channel chan<- string) {
+	if message != "" && message != agent.lastMessage {
+		channel <- message
+		agent.lastMessage = message
+	}
 }
 
 func (agent *Agent) handleToolCall(toolCall openai.ToolCall) bool {
