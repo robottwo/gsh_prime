@@ -2,7 +2,6 @@ package gline
 
 import (
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -126,7 +125,10 @@ func runProgramWithMessage(initial appModel, msg tea.Msg) (appModel, error) {
 		initial,
 		tea.WithoutRenderer(),
 		tea.WithoutSignalHandler(),
-		tea.WithInput(strings.NewReader("")),
+		// Disable Bubble Tea's attempt to acquire a TTY for stdin.
+		// Using nil keeps the input type "custom" and bypasses the
+		// /dev/tty fallback that doesn't exist in CI.
+		tea.WithInput(nil),
 		tea.WithOutput(io.Discard),
 	)
 
