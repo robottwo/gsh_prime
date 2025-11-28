@@ -35,7 +35,7 @@ func (m *MockSubagentProvider) GetSubagent(id string) (*SubagentInfo, bool) {
 func TestSubagentCompletions(t *testing.T) {
 	runner, _ := interp.New()
 	manager := NewCompletionManager()
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	// Create mock subagent provider
 	mockProvider := NewMockSubagentProvider()
@@ -70,9 +70,9 @@ func TestSubagentCompletions(t *testing.T) {
 		expected []shellinput.CompletionCandidate
 	}{
 		{
-			name:     "complete all subagents with @",
-			line:     "@",
-			pos:      1,
+			name: "complete all subagents with @",
+			line: "@",
+			pos:  1,
 			expected: []shellinput.CompletionCandidate{
 				{Value: "@code-reviewer"},
 				{Value: "@docs-helper"},
@@ -80,25 +80,25 @@ func TestSubagentCompletions(t *testing.T) {
 			},
 		},
 		{
-			name:     "complete subagents starting with 'c'",
-			line:     "@c",
-			pos:      2,
+			name: "complete subagents starting with 'c'",
+			line: "@c",
+			pos:  2,
 			expected: []shellinput.CompletionCandidate{
 				{Value: "@code-reviewer"},
 			},
 		},
 		{
-			name:     "complete subagents starting with 't'",
-			line:     "@t",
-			pos:      2,
+			name: "complete subagents starting with 't'",
+			line: "@t",
+			pos:  2,
 			expected: []shellinput.CompletionCandidate{
 				{Value: "@test-writer"},
 			},
 		},
 		{
-			name:     "complete subagents starting with 'd'",
-			line:     "@d",
-			pos:      2,
+			name: "complete subagents starting with 'd'",
+			line: "@d",
+			pos:  2,
 			expected: []shellinput.CompletionCandidate{
 				{Value: "@docs-helper"},
 			},
@@ -110,9 +110,9 @@ func TestSubagentCompletions(t *testing.T) {
 			expected: []shellinput.CompletionCandidate{},
 		},
 		{
-			name:     "subagent completion in middle of line",
-			line:     "some command @c and more text",
-			pos:      14,
+			name: "subagent completion in middle of line",
+			line: "some command @c and more text",
+			pos:  14,
 			expected: []shellinput.CompletionCandidate{
 				{Value: "some command @code-reviewer and more text"},
 			},
@@ -134,7 +134,7 @@ func TestSubagentCompletions(t *testing.T) {
 func TestSubagentHelp(t *testing.T) {
 	runner, _ := interp.New()
 	manager := NewCompletionManager()
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	// Create mock subagent provider
 	mockProvider := NewMockSubagentProvider()
@@ -165,7 +165,7 @@ func TestSubagentHelp(t *testing.T) {
 			name:     "help for @ empty shows all subagents",
 			line:     "@",
 			pos:      1,
-			expected: "**@Subagents** - Invoke a specialized assistant\nUse '@<name>' for a specific agent, '@@' to auto-select,\nor '@!' for agent commands. Tab-complete for a list.",
+			expected: "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n• **@code-reviewer** - Review code for bugs and best practices\n• **@test-writer** - Write comprehensive tests",
 		},
 		{
 			name:     "help for specific subagent",
@@ -198,7 +198,7 @@ func TestSubagentHelp(t *testing.T) {
 func TestSubagentCompletionWithoutProvider(t *testing.T) {
 	runner, _ := interp.New()
 	manager := NewCompletionManager()
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 	// Note: No subagent provider set
 
 	// Should return empty completions when no provider is set
@@ -207,6 +207,6 @@ func TestSubagentCompletionWithoutProvider(t *testing.T) {
 
 	// Should return generic help when no provider is set
 	help := provider.GetHelpInfo("@", 1)
-	expected := "**@Subagents** - Invoke a specialized assistant\nUse '@<name>' for a specific agent, '@@' to auto-select,\nor '@!' for agent commands. Tab-complete for a list."
+	expected := "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use @<subagent-name> to invoke a subagent."
 	assert.Equal(t, expected, help)
 }

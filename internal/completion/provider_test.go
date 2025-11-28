@@ -129,7 +129,7 @@ func TestGetCompletions(t *testing.T) {
 	}
 
 	manager := &mockCompletionManager{}
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	// Helper to determine expected /bin/ completions based on OS
 	var binCompletions []string
@@ -488,7 +488,7 @@ func TestGetHelpInfo(t *testing.T) {
 			name:     "help for @! empty",
 			line:     "@!",
 			pos:      2,
-			expected: "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details",
 		},
 		{
 			name:     "help for @!new",
@@ -512,13 +512,13 @@ func TestGetHelpInfo(t *testing.T) {
 			name:     "help for partial @!n (matches new)",
 			line:     "@!n",
 			pos:      3,
-			expected: "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details",
 		},
 		{
 			name:     "help for partial @!t (matches tokens)",
 			line:     "@!t",
 			pos:      3,
-			expected: "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details",
 		},
 		{
 			name:     "help for @!subagents",
@@ -550,7 +550,7 @@ func TestGetHelpInfo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			runner, _ := interp.New()
 			manager := NewCompletionManager()
-			provider := NewShellCompletionProvider(manager, runner, nil, nil)
+			provider := NewShellCompletionProvider(manager, runner)
 
 			result := provider.GetHelpInfo(tt.line, tt.pos)
 			assert.Equal(t, tt.expected, result)
@@ -565,7 +565,7 @@ func TestGetHelpInfoWithMacros(t *testing.T) {
 
 	// Use nil runner to force fallback to environment variable
 	manager := NewCompletionManager()
-	provider := NewShellCompletionProvider(manager, nil, nil, nil)
+	provider := NewShellCompletionProvider(manager, nil)
 
 	tests := []struct {
 		name     string

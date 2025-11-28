@@ -58,7 +58,7 @@ func TestShellCompletionProvider_FileCompletion_Integration(t *testing.T) {
 	}
 
 	manager := &mockCompletionManager{}
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	norm := func(p string) string {
 		return filepath.FromSlash(p)
@@ -173,7 +173,7 @@ func TestShellCompletionProvider_MacroCompletion_Integration(t *testing.T) {
 	}
 
 	manager := &mockCompletionManager{}
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	tests := []struct {
 		name             string
@@ -252,7 +252,7 @@ func TestShellCompletionProvider_BuiltinCompletion_Integration(t *testing.T) {
 	require.NoError(t, err)
 
 	manager := &mockCompletionManager{}
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	tests := []struct {
 		name             string
@@ -353,7 +353,7 @@ func TestShellCompletionProvider_ExecutableCompletion_Integration(t *testing.T) 
 	require.NoError(t, err)
 
 	manager := &mockCompletionManager{}
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	norm := func(p string) string {
 		return filepath.FromSlash(p)
@@ -463,7 +463,7 @@ func TestShellCompletionProvider_HelpInfo_Integration(t *testing.T) {
 	}
 
 	manager := NewCompletionManager()
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	tests := []struct {
 		name     string
@@ -475,7 +475,7 @@ func TestShellCompletionProvider_HelpInfo_Integration(t *testing.T) {
 			name:     "help for @! prefix",
 			line:     "@!",
 			pos:      2,
-			expected: "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details",
 		},
 		{
 			name:     "help for @!new command",
@@ -526,7 +526,7 @@ func TestShellCompletionProvider_CompletionSpec_Integration(t *testing.T) {
 	}
 	manager.specs["git"] = gitSpec
 
-	provider := NewShellCompletionProvider(manager, runner, nil, nil)
+	provider := NewShellCompletionProvider(manager, runner)
 
 	tests := []struct {
 		name          string
@@ -617,10 +617,10 @@ echo '{"Value":"global-option3","Description":"json desc"}'
 		shouldContain []shellinput.CompletionCandidate
 	}{
 		{
-			name:          "global completion fallback",
-			line:          "unknown-cmd ",
-			pos:           12,
-			expectedMin:   2,
+			name:        "global completion fallback",
+			line:        "unknown-cmd ",
+			pos:         12,
+			expectedMin: 2,
 			shouldContain: []shellinput.CompletionCandidate{
 				{Value: "global-option1"},
 				{Value: "global-option2", Description: "description2"},
