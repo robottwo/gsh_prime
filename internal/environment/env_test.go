@@ -821,3 +821,31 @@ func TestSyncVariablesToEnvExportsGSHVariables(t *testing.T) {
 		assert.Equal(t, value, dynamicEnv.gshVars[name], "dynamic environment should include %s", name)
 	}
 }
+
+func TestSyncVariablesToEnvRemovesUnsetVariables(t *testing.T) {
+	env := expand.ListEnviron(os.Environ()...)
+	runner, err := interp.New(interp.Env(env))
+	assert.NoError(t, err)
+
+	if runner.Vars == nil {
+		runner.Vars = make(map[string]expand.Variable)
+	}
+
+	runner.Vars["GSH_PROMPT"] = expand.Variable{Kind: expand.String, Str: "sync> "}
+	t.Setenv("GSH_PROMPT", "stale")
+
+	SyncVariablesToEnv(runner)
+
+	dynamicEnv, ok := runner.Env.(*DynamicEnviron)
+	assert.True(t, ok, "runner.Env should be a DynamicEnviron")
+	assert.Equal(t, "sync> ", os.Getenv("GSH_PROMPT"))
+	assert.Equal(t, "sync> ", dynamicEnv.gshVars["GSH_PROMPT"])
+
+	delete(runner.Vars, "GSH_PROMPT")
+	SyncVariablesToEnv(runner)
+
+	_, exists := os.LookupEnv("GSH_PROMPT")
+	assert.False(t, exists, "GSH_PROMPT should be removed from system environment")
+	_, exists = dynamicEnv.gshVars["GSH_PROMPT"]
+	assert.False(t, exists, "GSH_PROMPT should be removed from dynamic environment")
+}
