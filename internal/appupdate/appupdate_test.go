@@ -99,6 +99,20 @@ func (m *MockRelease) AssetName() string {
 	return m.Called().String(0)
 }
 
+type stubRelease struct{}
+
+func (stubRelease) Version() string {
+	return "1.2.3"
+}
+
+func (stubRelease) AssetURL() string {
+	return ""
+}
+
+func (stubRelease) AssetName() string {
+	return ""
+}
+
 func TestReadLatestVersion(t *testing.T) {
 	mockFS := new(MockFileSystem)
 	mockFile, _ := os.CreateTemp("", "test-latest-version")
@@ -138,7 +152,7 @@ func TestHandleSelfUpdate_UpdateNeeded(t *testing.T) {
 	mockRemoteRelease.On("AssetURL").Return("https://github.com/test/url")
 	mockRemoteRelease.On("AssetName").Return("test")
 
-	mockUpdater.On("DetectLatest", mock.Anything, "atinylittleshell/gsh").Return(mockRemoteRelease, true, nil)
+	mockUpdater.On("DetectLatest", mock.Anything, repositorySlug).Return(mockRemoteRelease, true, nil)
 	mockUpdater.On("UpdateTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	mockPrompter.
@@ -179,7 +193,7 @@ func TestHandleSelfUpdate_NoUpdateNeeded(t *testing.T) {
 	mockFS.On("OpenFile", core.LatestVersionFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0600)).Return(mockFileForWrite, nil)
 
 	mockRemoteRelease.On("Version").Return("1.2.4")
-	mockUpdater.On("DetectLatest", mock.Anything, "atinylittleshell/gsh").Return(mockRemoteRelease, true, nil)
+	mockUpdater.On("DetectLatest", mock.Anything, repositorySlug).Return(mockRemoteRelease, true, nil)
 
 	resultChannel := HandleSelfUpdate("2.0.0", logger, mockFS, mockPrompter, mockUpdater)
 
@@ -193,4 +207,25 @@ func TestHandleSelfUpdate_NoUpdateNeeded(t *testing.T) {
 	mockUpdater.AssertExpectations(t)
 
 	mockPrompter.AssertNotCalled(t, "Prompt")
+}
+
+func TestFetchAndSaveLatestVersion_CreateFails(t *testing.T) {
+	mockFS := new(MockFileSystem)
+	mockUpdater := new(MockUpdater)
+	logger := zap.NewNop()
+
+	mockUpdater.On("DetectLatest", mock.Anything, repositorySlug).Return(stubRelease{}, true, nil)
+	mockFS.On("OpenFile", core.LatestVersionFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0600)).Return((*os.File)(nil), assert.AnError)
+
+	resultChannel := make(chan string)
+
+	assert.NotPanics(t, func() {
+		fetchAndSaveLatestVersion(resultChannel, logger, mockFS, mockUpdater)
+	})
+
+	_, ok := <-resultChannel
+	assert.False(t, ok)
+
+	mockFS.AssertExpectations(t)
+	mockUpdater.AssertExpectations(t)
 }

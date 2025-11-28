@@ -3,9 +3,9 @@ package appupdate
 import (
 	"bytes"
 	"context"
-	"os"
 	"github.com/atinylittleshell/gsh/internal/filesystem"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
@@ -15,6 +15,8 @@ import (
 	"github.com/creativeprojects/go-selfupdate"
 	"go.uber.org/zap"
 )
+
+const repositorySlug = "robottwo/gsh_prime"
 
 func HandleSelfUpdate(
 	currentVersion string,
@@ -94,7 +96,7 @@ func updateToLatestVersion(currentSemVer *semver.Version, logger *zap.Logger, fs
 
 	latest, found, err := updater.DetectLatest(
 		context.Background(),
-		"atinylittleshell/gsh",
+		repositorySlug,
 	)
 	if err != nil {
 		logger.Warn("error occurred while detecting latest version", zap.Error(err))
@@ -123,7 +125,7 @@ func fetchAndSaveLatestVersion(resultChannel chan string, logger *zap.Logger, fs
 
 	latest, found, err := updater.DetectLatest(
 		context.Background(),
-		"atinylittleshell/gsh",
+		repositorySlug,
 	)
 	if err != nil {
 		logger.Warn("error occurred while getting latest version from remote", zap.Error(err))
@@ -140,6 +142,10 @@ func fetchAndSaveLatestVersion(resultChannel chan string, logger *zap.Logger, fs
 	file, err := fs.OpenFile(recordFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		logger.Error("failed to save latest version", zap.Error(err))
+		return
+	}
+	if file == nil {
+		logger.Error("failed to save latest version: nil file handle returned")
 		return
 	}
 	defer func() {
