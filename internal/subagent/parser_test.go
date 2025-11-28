@@ -22,7 +22,7 @@ You are a test agent used for unit testing the subagent system.
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	if _, err := tmpFile.Write([]byte(content)); err != nil {
 		t.Fatalf("Failed to write to temp file: %v", err)
@@ -79,7 +79,7 @@ func TestParseRooConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	defer os.Remove(tmpFile.Name())
+	defer func() { _ = os.Remove(tmpFile.Name()) }()
 
 	if _, err := tmpFile.Write([]byte(content)); err != nil {
 		t.Fatalf("Failed to write to temp file: %v", err)
