@@ -4,8 +4,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"testing"
 	"runtime"
+	"testing"
 
 	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
@@ -584,6 +584,11 @@ func TestShellCompletionProvider_CompletionSpec_Integration(t *testing.T) {
 }
 
 func TestShellCompletionProvider_GlobalCompletion_Integration(t *testing.T) {
+	// Skip on Windows as shell script execution is not reliable
+	if runtime.GOOS == "windows" {
+		t.Skip("Skipping on Windows: shell script execution not supported")
+	}
+
 	// Skip on CI if needed, or ensure sh is available
 	if _, err := exec.LookPath("sh"); err != nil {
 		t.Skip("sh not found")
