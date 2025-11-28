@@ -16,8 +16,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const repositorySlug = "robottwo/gsh_prime"
-
 func HandleSelfUpdate(
 	currentVersion string,
 	logger *zap.Logger,
@@ -96,7 +94,7 @@ func updateToLatestVersion(currentSemVer *semver.Version, logger *zap.Logger, fs
 
 	latest, found, err := updater.DetectLatest(
 		context.Background(),
-		repositorySlug,
+		core.RepositorySlug,
 	)
 	if err != nil {
 		logger.Warn("error occurred while detecting latest version", zap.Error(err))
@@ -125,7 +123,7 @@ func fetchAndSaveLatestVersion(resultChannel chan string, logger *zap.Logger, fs
 
 	latest, found, err := updater.DetectLatest(
 		context.Background(),
-		repositorySlug,
+		core.RepositorySlug,
 	)
 	if err != nil {
 		logger.Warn("error occurred while getting latest version from remote", zap.Error(err))

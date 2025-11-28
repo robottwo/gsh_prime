@@ -152,7 +152,7 @@ func TestHandleSelfUpdate_UpdateNeeded(t *testing.T) {
 	mockRemoteRelease.On("AssetURL").Return("https://github.com/test/url")
 	mockRemoteRelease.On("AssetName").Return("test")
 
-	mockUpdater.On("DetectLatest", mock.Anything, repositorySlug).Return(mockRemoteRelease, true, nil)
+	mockUpdater.On("DetectLatest", mock.Anything, core.RepositorySlug).Return(mockRemoteRelease, true, nil)
 	mockUpdater.On("UpdateTo", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	mockPrompter.
@@ -193,7 +193,7 @@ func TestHandleSelfUpdate_NoUpdateNeeded(t *testing.T) {
 	mockFS.On("OpenFile", core.LatestVersionFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0600)).Return(mockFileForWrite, nil)
 
 	mockRemoteRelease.On("Version").Return("1.2.4")
-	mockUpdater.On("DetectLatest", mock.Anything, repositorySlug).Return(mockRemoteRelease, true, nil)
+	mockUpdater.On("DetectLatest", mock.Anything, core.RepositorySlug).Return(mockRemoteRelease, true, nil)
 
 	resultChannel := HandleSelfUpdate("2.0.0", logger, mockFS, mockPrompter, mockUpdater)
 
@@ -214,7 +214,7 @@ func TestFetchAndSaveLatestVersion_CreateFails(t *testing.T) {
 	mockUpdater := new(MockUpdater)
 	logger := zap.NewNop()
 
-	mockUpdater.On("DetectLatest", mock.Anything, repositorySlug).Return(stubRelease{}, true, nil)
+	mockUpdater.On("DetectLatest", mock.Anything, core.RepositorySlug).Return(stubRelease{}, true, nil)
 	mockFS.On("OpenFile", core.LatestVersionFile(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, os.FileMode(0600)).Return((*os.File)(nil), assert.AnError)
 
 	resultChannel := make(chan string)
