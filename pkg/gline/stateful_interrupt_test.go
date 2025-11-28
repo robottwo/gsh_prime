@@ -1,6 +1,8 @@
 package gline
 
 import (
+	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -120,7 +122,13 @@ func TestMultipleGlineCallsWithInterruption(t *testing.T) {
 // runProgramWithMessage executes a Bubble Tea program using the provided initial model and
 // sends a single message to drive it to completion.
 func runProgramWithMessage(initial appModel, msg tea.Msg) (appModel, error) {
-	p := tea.NewProgram(initial, tea.WithoutRenderer(), tea.WithoutSignalHandler())
+	p := tea.NewProgram(
+		initial,
+		tea.WithoutRenderer(),
+		tea.WithoutSignalHandler(),
+		tea.WithInput(strings.NewReader("")),
+		tea.WithOutput(io.Discard),
+	)
 
 	var (
 		model tea.Model
