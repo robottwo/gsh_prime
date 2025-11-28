@@ -73,8 +73,9 @@ func (g *GitCompleter) GetCompletions(args []string, line string) []shellinput.C
 }
 
 func (g *GitCompleter) completeBranches(prefix string) []shellinput.CompletionCandidate {
-	// Run git branch --format='%(refname:short)'
-	cmd := exec.Command("git", "branch", "--format=%(refname:short)")
+	// Run git branch with format to get branch names and their latest commit messages
+	// Format: branch_name|commit_subject
+	cmd := exec.Command("git", "branch", "--format=%(refname:short)|%(contents:subject)")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil
@@ -84,10 +85,26 @@ func (g *GitCompleter) completeBranches(prefix string) []shellinput.CompletionCa
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		if line != "" && strings.HasPrefix(line, prefix) {
+		if line == "" {
+			continue
+		}
+
+		// Split by the delimiter to get branch name and commit message
+		parts := strings.SplitN(line, "|", 2)
+		branchName := parts[0]
+		commitMsg := ""
+		if len(parts) > 1 {
+			commitMsg = parts[1]
+			// Truncate long commit messages
+			if len(commitMsg) > 80 {
+				commitMsg = commitMsg[:77] + "..."
+			}
+		}
+
+		if strings.HasPrefix(branchName, prefix) {
 			candidates = append(candidates, shellinput.CompletionCandidate{
-				Value:       line,
-				Description: "Branch",
+				Value:       branchName,
+				Description: commitMsg,
 			})
 		}
 	}
