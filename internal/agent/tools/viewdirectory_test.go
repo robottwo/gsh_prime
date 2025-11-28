@@ -3,6 +3,7 @@ package tools
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -58,7 +59,7 @@ func TestViewDirectoryTool(t *testing.T) {
 		// Check for nested directory with path separator
 		// On Unix it will be nested/, on Windows it might be nested\
 		assert.True(t,
-			assert.Contains(t, result, "nested/") || assert.Contains(t, result, "nested\\"),
+			strings.Contains(result, "nested/") || strings.Contains(result, "nested\\"),
 			"Result should contain nested directory")
 	})
 
