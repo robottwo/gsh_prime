@@ -44,10 +44,10 @@ func RunInteractiveShell(
 		},
 	}
 	predictor := &predict.PredictRouter{
-		PrefixPredictor:    predict.NewLLMPrefixPredictor(runner, historyManager, logger),
-		NullStatePredictor: predict.NewLLMNullStatePredictor(runner, logger),
+		PrefixPredictor:    predict.NewHistoryPrefixPredictor(historyManager, logger),
+		NullStatePredictor: predict.NewHistoryNullStatePredictor(runner, historyManager, logger),
 	}
-	explainer := predict.NewLLMExplainer(runner, logger)
+	explainer := predict.NewNoopExplainer()
 	agent := agent.NewAgent(runner, historyManager, logger)
 
 	// Set up subagent integration

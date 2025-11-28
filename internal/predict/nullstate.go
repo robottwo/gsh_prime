@@ -1,113 +1,59 @@
 package predict
 
 import (
-	"context"
-	"encoding/json"
-	"fmt"
+	"strings"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/utils"
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/atinylittleshell/gsh/internal/history"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )
 
-type LLMNullStatePredictor struct {
-	runner      *interp.Runner
-	llmClient   *openai.Client
-	contextText string
-	logger      *zap.Logger
-	modelId     string
-	temperature *float64
+// HistoryNullStatePredictor suggests the most recent command from history when
+// no input has been provided, avoiding any LLM calls.
+type HistoryNullStatePredictor struct {
+	runner         *interp.Runner
+	historyManager *history.HistoryManager
+	logger         *zap.Logger
 }
 
-func NewLLMNullStatePredictor(
+func NewHistoryNullStatePredictor(
 	runner *interp.Runner,
+	historyManager *history.HistoryManager,
 	logger *zap.Logger,
-) *LLMNullStatePredictor {
-	llmClient, modelConfig := utils.GetLLMClient(runner, utils.FastModel)
-	return &LLMNullStatePredictor{
-		runner:      runner,
-		llmClient:   llmClient,
-		contextText: "",
-		logger:      logger,
-		modelId:     modelConfig.ModelId,
-		temperature: modelConfig.Temperature,
+) *HistoryNullStatePredictor {
+	return &HistoryNullStatePredictor{
+		runner:         runner,
+		historyManager: historyManager,
+		logger:         logger,
 	}
 }
 
-func (p *LLMNullStatePredictor) UpdateContext(context *map[string]string) {
-	contextTypes := environment.GetContextTypesForPredictionWithoutPrefix(p.runner, p.logger)
-	p.contextText = utils.ComposeContextText(context, contextTypes, p.logger)
-}
+func (p *HistoryNullStatePredictor) UpdateContext(_ *map[string]string) {}
 
-func (p *LLMNullStatePredictor) Predict(input string) (string, string, error) {
-	if input != "" {
+func (p *HistoryNullStatePredictor) Predict(input string) (string, string, error) {
+	if strings.TrimSpace(input) != "" {
 		// this predictor is only for null state
 		return "", "", nil
 	}
 
-	schema, err := PREDICTED_COMMAND_SCHEMA.MarshalJSON()
+	pwd := environment.GetPwd(p.runner)
+	entries, err := p.historyManager.GetRecentEntries(pwd, 1)
 	if err != nil {
-		return "", "", err
+		p.logger.Warn("error fetching history for null-state prediction", zap.Error(err))
+		return "", "", nil
 	}
 
-	userMessage := fmt.Sprintf(`You are gsh, an intelligent shell program.
-You are asked to predict the next command I'm likely to want to run.
+	if len(entries) == 0 {
+		return "", "", nil
+	}
 
-# Instructions
-* Based on the context, analyze the my potential intent
-* Your prediction must be a valid, single-line, complete bash command
-
-# Best Practices
-%s
-
-# Latest Context
-%s
-
-# Response JSON Schema
-%s
-
-Now predict what my next command should be.`,
-		BEST_PRACTICES,
-		p.contextText,
-		string(schema),
-	)
+	prediction := entries[0].Command
 
 	p.logger.Debug(
-		"predicting using LLM",
-		zap.String("user", userMessage),
+		"history-based null state prediction",
+		zap.String("prediction", prediction),
 	)
 
-	request := openai.ChatCompletionRequest{
-		Model: p.modelId,
-		Messages: []openai.ChatCompletionMessage{
-			{
-				Role:    "user",
-				Content: userMessage,
-			},
-		},
-		ResponseFormat: &openai.ChatCompletionResponseFormat{
-			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
-		},
-	}
-	if p.temperature != nil {
-		request.Temperature = float32(*p.temperature)
-	}
-
-	chatCompletion, err := p.llmClient.CreateChatCompletion(context.TODO(), request)
-
-	if err != nil {
-		return "", "", err
-	}
-
-	prediction := PredictedCommand{}
-	_ = json.Unmarshal([]byte(chatCompletion.Choices[0].Message.Content), &prediction)
-
-	p.logger.Debug(
-		"LLM prediction response",
-		zap.Any("response", prediction),
-	)
-
-	return prediction.PredictedCommand, userMessage, nil
+	return prediction, pwd, nil
 }

@@ -1,8 +1,8 @@
 package predict
 
 type PredictRouter struct {
-	PrefixPredictor    *LLMPrefixPredictor
-	NullStatePredictor *LLMNullStatePredictor
+	PrefixPredictor    *HistoryPrefixPredictor
+	NullStatePredictor *HistoryNullStatePredictor
 }
 
 func (p *PredictRouter) UpdateContext(context *map[string]string) {
