@@ -24,7 +24,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		for _, entry := range entries {
 			name := entry.Name()
 			if entry.IsDir() {
-				name += "/"
+				name += string(os.PathSeparator)
 			}
 			matches = append(matches, name)
 		}
@@ -53,7 +53,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		prefixDir = filepath.Dir(prefix)
 
 		// If prefix ends with "/", adjust accordingly
-		if strings.HasSuffix(prefix, "/") {
+		if strings.HasSuffix(prefix, "/") || strings.HasSuffix(prefix, string(os.PathSeparator)) {
 			dir = searchPath
 			filePrefix = ""
 			prefixDir = prefix
@@ -66,7 +66,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		prefixDir = filepath.Dir(prefix)
 
 		// If prefix ends with "/", adjust accordingly
-		if strings.HasSuffix(prefix, "/") {
+		if strings.HasSuffix(prefix, "/") || strings.HasSuffix(prefix, string(os.PathSeparator)) {
 			dir = prefix
 			filePrefix = ""
 			prefixDir = prefix
@@ -80,7 +80,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		prefixDir = filepath.Dir(prefix)
 
 		// If prefix ends with "/", adjust accordingly
-		if strings.HasSuffix(prefix, "/") {
+		if strings.HasSuffix(prefix, "/") || strings.HasSuffix(prefix, string(os.PathSeparator)) {
 			dir = fullPath
 			filePrefix = ""
 			prefixDir = prefix
@@ -106,7 +106,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		if pathType == "home" {
 			// For home directory paths, keep the "~" prefix
 			if prefixDir == "~" || prefixDir == "." {
-				completionPath = "~/" + name
+				completionPath = "~" + string(os.PathSeparator) + name
 			} else {
 				completionPath = filepath.Join(prefixDir, name)
 			}
@@ -124,7 +124,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 
 		// Add trailing slash for directories
 		if entry.IsDir() {
-			completionPath += "/"
+			completionPath += string(os.PathSeparator)
 		}
 
 		matches = append(matches, completionPath)
