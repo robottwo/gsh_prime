@@ -54,7 +54,7 @@ func RunInteractiveShell(
 	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger)
 
 	// Set up completion
-	completionProvider := completion.NewShellCompletionProvider(completionManager, runner)
+	completionProvider := completion.NewShellCompletionProvider(completionManager, runner, historyManager, logger)
 	completionProvider.SetSubagentProvider(subagentIntegration.GetCompletionProvider())
 
 	chanSIGINT := make(chan os.Signal, 1)
@@ -77,6 +77,7 @@ func RunInteractiveShell(
 		predictor.UpdateContext(ragContext)
 		explainer.UpdateContext(ragContext)
 		agent.UpdateContext(ragContext)
+		completionProvider.UpdateContext(ragContext)
 
 		historyEntries, err := historyManager.GetRecentEntries(environment.GetPwd(runner), 1024)
 		if err != nil {
@@ -153,6 +154,9 @@ func RunInteractiveShell(
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("gsh: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
 					continue
 				}
+
+				// Print notification: "Asking <subagent_name> to assist with this task"
+				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("Asking %s to assist with this task\n", subagent.Name)) + gline.RESET_CURSOR_COLUMN)
 
 				// Handle subagent response with subagent identification
 				for message := range chatChannel {

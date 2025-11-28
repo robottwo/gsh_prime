@@ -12,6 +12,9 @@ import (
 	"unicode"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/atinylittleshell/gsh/internal/predict"
+	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -36,23 +39,41 @@ type SubagentProvider interface {
 
 // ShellCompletionProvider implements shellinput.CompletionProvider using the shell's CompletionManager
 type ShellCompletionProvider struct {
-	CompletionManager CompletionManagerInterface
-	Runner            *interp.Runner
-	SubagentProvider  SubagentProvider // Optional, for @ completions
+	CompletionManager   CompletionManagerInterface
+	Runner              *interp.Runner
+	SubagentProvider    SubagentProvider // Optional, for @ completions
+	CompletionPredictor *predict.LLMCompletionPredictor
 }
 
 // NewShellCompletionProvider creates a new ShellCompletionProvider
-func NewShellCompletionProvider(manager CompletionManagerInterface, runner *interp.Runner) *ShellCompletionProvider {
+func NewShellCompletionProvider(
+	manager CompletionManagerInterface,
+	runner *interp.Runner,
+	historyManager *history.HistoryManager,
+	logger *zap.Logger,
+) *ShellCompletionProvider {
+	var completionPredictor *predict.LLMCompletionPredictor
+	if historyManager != nil && logger != nil && runner != nil {
+		completionPredictor = predict.NewLLMCompletionPredictor(runner, historyManager, logger)
+	}
+
 	return &ShellCompletionProvider{
-		CompletionManager: manager,
-		Runner:            runner,
-		SubagentProvider:  nil, // Set later via SetSubagentProvider if needed
+		CompletionManager:   manager,
+		Runner:              runner,
+		SubagentProvider:    nil, // Set later via SetSubagentProvider if needed
+		CompletionPredictor: completionPredictor,
 	}
 }
 
 // SetSubagentProvider sets the subagent provider for @ completions
 func (p *ShellCompletionProvider) SetSubagentProvider(provider SubagentProvider) {
 	p.SubagentProvider = provider
+}
+
+func (p *ShellCompletionProvider) UpdateContext(context *map[string]string) {
+	if p.CompletionPredictor != nil {
+		p.CompletionPredictor.UpdateContext(context)
+	}
 }
 
 // GetCompletions returns completion suggestions for the current input line
@@ -94,7 +115,15 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []string 
 			}
 		}
 
-		// No command matches or multiple words, try file path completion
+		// No command matches or multiple words, try LLM completion
+		if p.CompletionPredictor != nil {
+			completions, err := p.CompletionPredictor.Predict(line[:pos])
+			if err == nil && len(completions) > 0 {
+				return completions
+			}
+		}
+
+		// Fallback to file completions if LLM fails or is not available
 		var prefix string
 		if len(words) > 1 {
 			// Get the last word as the prefix for file completion
@@ -652,14 +681,14 @@ func (p *ShellCompletionProvider) getBuiltinCommandHelp(command string) string {
 	case "subagent-info":
 		return "**@!subagent-info <name>** - Show detailed information about a subagent\n\nDisplays comprehensive information about a specific subagent including tools, file restrictions, and configuration."
 	case "":
-		return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details"
+		return "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents"
 	default:
 		// Check for partial matches
 		builtinCommands := []string{"new", "tokens", "subagents", "reload-subagents", "subagent-info"}
 		for _, cmd := range builtinCommands {
 			if strings.HasPrefix(cmd, command) {
 				// Partial match, show general help
-				return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents** - List available subagents\n• **@!reload-subagents** - Reload subagent configurations\n• **@!subagent-info <name>** - Show subagent details"
+				return "**@!Agent Controls** - Manage the agent\n'@!new' - Start a new session\n'@!subagents' - List available subagents"
 			}
 		}
 		return ""
@@ -730,35 +759,22 @@ func (p *ShellCompletionProvider) getMacroHelp(macroName string) string {
 
 // getSubagentHelp returns help information for subagents
 func (p *ShellCompletionProvider) getSubagentHelp(subagentName string) string {
-	// If no subagent manager is available, return generic help
+	if subagentName == "" {
+		return "**@Subagents** - Invoke a specialized assistant\nUse '@<name>' for a specific agent, '@@' to auto-select,\nor '@!' for agent commands. Tab-complete for a list."
+	}
+
+	// The user typed "@@", which is passed as subagentName="@"
+	if subagentName == "@" {
+		return "**@@Auto-Select** - Let gsh choose the best subagent\ngsh will analyze your prompt and select the most\nappropriate subagent to handle the command."
+	}
+
+	// If no subagent manager is available, we can't provide more specific help
 	if p.SubagentProvider == nil {
-		if subagentName == "" {
-			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagent manager configured. Use @<subagent-name> to invoke a subagent."
-		}
 		return ""
 	}
 
 	// Get all available subagents
 	subagents := p.SubagentProvider.GetAllSubagents()
-
-	if subagentName == "" {
-		// Show general subagent help
-		if len(subagents) == 0 {
-			return "**Subagents** - Specialized AI assistants with specific roles\n\nNo subagents are currently configured."
-		}
-
-		var subagentList []string
-		for id, subagent := range subagents {
-			description := subagent.Description
-			if description == "" {
-				description = "No description available"
-			}
-			subagentList = append(subagentList, fmt.Sprintf("• **@%s** - %s", id, description))
-		}
-		sort.Strings(subagentList)
-
-		return "**Subagents** - Specialized AI assistants with specific roles\n\nAvailable subagents:\n" + strings.Join(subagentList, "\n")
-	}
 
 	// Check for exact match first
 	if subagent, ok := subagents[subagentName]; ok {
