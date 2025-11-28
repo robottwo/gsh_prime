@@ -114,8 +114,8 @@ func TestStaticCompleter(t *testing.T) {
 func TestGitCompleter_Subcommands(t *testing.T) {
 	completer := &GitCompleter{}
 
-	// Test subcommands
-	got := completer.GetCompletions([]string{})
+	// Test subcommands (empty args, line doesn't matter for subcommand completion)
+	got := completer.GetCompletions([]string{}, "git ")
 
 	expected := []string{"checkout", "commit", "add", "push", "pull", "status"}
 	for _, exp := range expected {

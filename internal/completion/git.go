@@ -10,7 +10,7 @@ import (
 // GitCompleter handles built-in completion for git
 type GitCompleter struct{}
 
-func (g *GitCompleter) GetCompletions(args []string) []shellinput.CompletionCandidate {
+func (g *GitCompleter) GetCompletions(args []string, line string) []shellinput.CompletionCandidate {
 	if len(args) == 0 {
 		// Complete git subcommands
 		commands := []struct {
@@ -52,7 +52,15 @@ func (g *GitCompleter) GetCompletions(args []string) []shellinput.CompletionCand
 	subcommand := args[0]
 	// args[1:] are arguments to the subcommand
 	// current word being completed is the last one in args
-	currentWord := args[len(args)-1]
+	// BUT if line ends with space, we're completing a new empty word
+	currentWord := ""
+	if len(args) > 1 {
+		currentWord = args[len(args)-1]
+	}
+	// If line ends with space, we're starting a new word (empty prefix)
+	if len(line) > 0 && line[len(line)-1] == ' ' {
+		currentWord = ""
+	}
 
 	switch subcommand {
 	case "checkout", "switch", "merge", "rebase":

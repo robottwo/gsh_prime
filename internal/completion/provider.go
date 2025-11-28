@@ -101,7 +101,7 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellin
 		if len(words) > 1 {
 			gitArgs = words[1:]
 		}
-		if suggestions := p.gitCompleter.GetCompletions(gitArgs); len(suggestions) > 0 {
+		if suggestions := p.gitCompleter.GetCompletions(gitArgs, truncatedLine); len(suggestions) > 0 {
 			return suggestions
 		}
 	}
