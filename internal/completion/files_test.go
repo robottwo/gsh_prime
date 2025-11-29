@@ -55,7 +55,9 @@ func TestFileCompletions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(testFileInHome)
+	defer func() {
+		_ = os.Remove(testFileInHome)
+	}()
 
 	// Helper to normalize path separators
 	norm := func(path string) string {

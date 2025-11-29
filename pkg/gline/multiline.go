@@ -252,13 +252,124 @@ func hasIncompleteConstructs(input string) bool {
 
 // findMatchingParen finds the matching closing parenthesis for an opening one
 func findMatchingParen(s string, openChar, closeChar rune) int {
-	count := 0
+	// This function is intended to find the matching closing character in `s`
+	// for an opening character that preceded `s` (implied).
+	// Therefore, we start with nesting level 1.
+	//
+	// However, if the first character of s is openChar, it increments nesting.
+	// Example: s = "(foo)", open='(', close=')'.
+	// i=0, ch='(': nesting -> 2.
+	// i=4, ch=')': nesting -> 1.
+	// Returns -1.
+	//
+	// If s = "foo)", open='(', close=')'.
+	// i=3, ch=')': nesting -> 0. Returns 3. Correct.
+	//
+	// The test cases in infinite_loop_test.go seem to expect `findMatchingParen`
+	// to treat `s` as if it *starts* with the opening char if `s` is e.g. "(test)".
+	// Case 1: "(test)", expected 5.
+	// If start nesting=1.
+	// i=0 '(': nesting=2.
+	// i=5 ')': nesting=1.
+	// Result -1.
+	//
+	// If the test case expects 5 for "(test)", then it expects `findMatchingParen` to parse matching parens WITHIN s,
+	// assuming we started at 0.
+	//
+	// But `hasIncompleteConstructs` calls it like this:
+	// start := strings.Index(cleanInput, "$(")
+	// end := findMatchingParen(cleanInput[start+2:], '(', ')')
+	//
+	// Here `cleanInput[start+2:]` is the content *after* the opening `$(`.
+	// So for `$(foo)`, input to findMatchingParen is `foo)`.
+	// For `foo)`, we want it to return index of `)`.
+	// With nesting=1:
+	// f: 1
+	// o: 1
+	// o: 1
+	// ): 0 -> return index.
+	//
+	// So for `hasIncompleteConstructs`, my implementation (nesting=1) is correct.
+	//
+	// The tests in `infinite_loop_test.go` seem to be testing a different contract,
+	// specifically `TestFindMatchingParenEdgeCases`.
+	// It passes full strings like `(test)`.
+	// If `findMatchingParen` is supposed to support that, it needs to know if it should assume implicit opening paren or not.
+	//
+	// Given the usage in `hasIncompleteConstructs`, the implicit opening paren assumption is correct.
+	// The tests in `infinite_loop_test.go` are likely written with a different assumption or trying to test a general purpose function.
+	//
+	// If I change `nesting` to 0, then `hasIncompleteConstructs` will fail because it feeds a string that does NOT start with `(`.
+	// `foo)` -> `)` makes count -1.
+	//
+	// So `hasIncompleteConstructs` relies on `findMatchingParen` finding the closing paren for a *preceding* opening paren.
+	//
+	// I should update the test cases in `pkg/gline/infinite_loop_test.go` to reflect the actual usage/contract of `findMatchingParen`,
+	// OR I should rename/document `findMatchingParen` to be specific about its purpose.
+	//
+	// Since `findMatchingParen` is unexported, I can define its behavior.
+	// It seems the tests were added assuming a standard "find matching paren in this string" behavior, possibly by me or someone else recently.
+	//
+	// I will update `pkg/gline/infinite_loop_test.go` to test the function as it is used: finding a closing paren for an implied opening paren.
+	// So for input `(test)`, it should return -1 (nesting goes 1->2->1).
+	// For input `test)`, it should return 4 (nesting goes 1->0).
+	//
+	// Wait, let's look at `TestFindMatchingParenEdgeCases` again.
+	// Case 1: `(test)`, expected 5. This implies it thinks it found the closing paren for the first `(`.
+	// Case 4: `test)`, expected -1. This implies it expects balanced parens starting from 0.
+	//
+	// But `hasIncompleteConstructs` does:
+	// `end := findMatchingParen(cleanInput[start+2:], '(', ')')`
+	// where `cleanInput` has `$(` at `start`.
+	// So we stripped `$(`.
+	//
+	// If `cleanInput` was `$(foo)`, `start` points to `$`. `start+2` points to `f`.
+	// String passed is `foo)`.
+	// We want to find the `)`.
+	//
+	// If I assume `nesting=0`, scanning `foo)`:
+	// f: 0
+	// o: 0
+	// o: 0
+	// ): -1.
+	// We could return on -1?
+	//
+	// If I assume `nesting=1`, scanning `foo)`:
+	// ): 0. Return.
+	//
+	// So `nesting=1` is definitely what `hasIncompleteConstructs` needs.
+	//
+	// The tests in `infinite_loop_test.go` are incompatible with this usage.
+	// `(test)` -> passed to `findMatchingParen`.
+	// If nesting=1:
+	// (: 2
+	// ): 1
+	// returns -1.
+	// The test expects 5.
+	//
+	// `test)` -> passed to `findMatchingParen`.
+	// ): 0. returns 4.
+	// The test expects -1.
+	//
+	// So the tests expect `nesting=0` behavior (standard balanced paren search).
+	//
+	// I should modify `infinite_loop_test.go` to match the implementation that `hasIncompleteConstructs` requires.
+	//
+	// Alternatively, I can create two functions or make `findMatchingParen` take an initial nesting level.
+	// But `findMatchingParen` is only used in `hasIncompleteConstructs` (and the test).
+	//
+	// I'll update the test to reflect reality.
+
+	// We start with nesting level 1 because we are looking for the closing character
+	// corresponding to an opening character that appeared *before* the string `s`.
+	nesting := 1
 	for i, ch := range s {
-		if ch == openChar {
-			count++
-		} else if ch == closeChar {
-			count--
-			if count == 0 {
+		switch ch {
+		case openChar:
+			nesting++
+		case closeChar:
+			nesting--
+			if nesting == 0 {
 				return i
 			}
 		}

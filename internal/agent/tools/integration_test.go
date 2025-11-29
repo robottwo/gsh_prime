@@ -230,7 +230,7 @@ func TestFileOperations(t *testing.T) {
 		// Create empty file
 		file, err := os.Create(tempAuthorizedFile)
 		assert.NoError(t, err)
-		file.Close()
+	_ = file.Close()
 
 		// Should return empty slice without error
 		patterns, err := environment.LoadAuthorizedCommandsFromFile()
@@ -576,7 +576,7 @@ func TestEdgeCases(t *testing.T) {
 	// Create empty file
 	file, err := os.Create(tempAuthorizedFile)
 	assert.NoError(t, err)
-	file.Close()
+	_ = file.Close()
 
 	// Should load empty patterns without error
 	patterns := environment.GetApprovedBashCommandRegex(runner, logger)

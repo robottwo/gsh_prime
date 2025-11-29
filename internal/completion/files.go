@@ -108,17 +108,18 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 
 		// Build path based on type
 		var completionPath string
-		if pathType == "home" {
+		switch pathType {
+		case "home":
 			// For home directory paths, keep the "~" prefix
 			if prefixDir == "~" || prefixDir == "." {
 				completionPath = "~" + string(os.PathSeparator) + name
 			} else {
 				completionPath = filepath.Join(prefixDir, name)
 			}
-		} else if pathType == "abs" {
+		case "abs":
 			// For absolute paths, keep the full path
 			completionPath = filepath.Join(prefixDir, name)
-		} else {
+		default:
 			// For relative paths, keep them relative
 			if prefixDir == "." {
 				// Check if the original prefix started with "./"

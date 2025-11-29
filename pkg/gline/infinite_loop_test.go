@@ -92,14 +92,46 @@ func TestFindMatchingParenEdgeCases(t *testing.T) {
 		expected  int
 		desc      string
 	}{
-		{"(test)", '(', ')', 5, "Simple matching parentheses"},
-		{"(test (nested))", '(', ')', 14, "Nested parentheses"},
-		{"(test", '(', ')', -1, "Incomplete - missing closing"},
-		{"test)", '(', ')', -1, "No opening parenthesis"},
-		{"", '(', ')', -1, "Empty string"},
-		{"()", '(', ')', 1, "Empty parentheses"},
-		{"((()))", '(', ')', 5, "Multiple levels of nesting"},
-		{"(test (foo (bar)))", '(', ')', 17, "Multiple closing parentheses"},
+		// findMatchingParen assumes an implicit opening parenthesis BEFORE the string
+		// So it's looking for the closing parenthesis that matches the implicit start
+
+		// (test) - implicit start: ((test)
+		// 0: ( -> nesting 2
+		// 5: ) -> nesting 1
+		// no match for implicit start
+		{"(test)", '(', ')', -1, "Implicit start: ((test)"},
+
+		// test) - implicit start: (test)
+		// 4: ) -> nesting 0
+		// match found at 4
+		{"test)", '(', ')', 4, "Implicit start: (test)"},
+
+		// test - implicit start: (test
+		// no closing paren
+		{"test", '(', ')', -1, "Implicit start: (test - no closing"},
+
+		// (test - implicit start: ((test
+		// no closing paren
+		{"(test", '(', ')', -1, "Implicit start: ((test - no closing"},
+
+		// ) - implicit start: ()
+		// 0: ) -> nesting 0
+		// match found at 0
+		{")", '(', ')', 0, "Implicit start: ()"},
+
+		// (test)) - implicit start: ((test))
+		// 0: ( -> nesting 2
+		// 5: ) -> nesting 1
+		// 6: ) -> nesting 0
+		// match found at 6
+		{"(test))", '(', ')', 6, "Implicit start: ((test))"},
+
+		// test (nested) ) - implicit start: (test (nested) )
+		// 5: ( -> nesting 2
+		// 12: ) -> nesting 1
+		// 14: ) -> nesting 0
+		// match found at 14
+		{"test (nested) )", '(', ')', 14, "Implicit start: (test (nested) )"},
 	}
 
 	for i, tc := range testCases {

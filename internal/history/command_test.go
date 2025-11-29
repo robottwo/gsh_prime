@@ -23,7 +23,7 @@ func captureOutput(f func() error) (string, error) {
 	err := f()
 
 	// Close the write end of the pipe to flush it
-	w.Close()
+	_ = w.Close()
 
 	// Restore the original stdout
 	os.Stdout = oldStdout
