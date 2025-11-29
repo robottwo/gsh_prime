@@ -15,7 +15,7 @@ func TestFileCompletions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create some test files and directories
 	files := []string{
@@ -55,7 +55,7 @@ func TestFileCompletions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(testFileInHome)
+	defer func() { _ = os.Remove(testFileInHome) }()
 
 	// Helper to normalize path separators
 	norm := func(path string) string {
@@ -71,7 +71,7 @@ func TestFileCompletions(t *testing.T) {
 		prefix      string
 		currentDir  string
 		expected    []string
-		shouldMatch bool // true for exact match, false for contains
+		shouldMatch bool                                 // true for exact match, false for contains
 		verify      func(t *testing.T, results []string) // optional additional verification
 	}{
 		{

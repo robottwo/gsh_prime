@@ -55,7 +55,7 @@ func (d *DefaultCompleter) completeDirectories(args []string) []shellinput.Compl
 	for _, c := range candidates {
 		if strings.HasSuffix(c, "/") {
 			dirs = append(dirs, shellinput.CompletionCandidate{
-				Value: c,
+				Value:       c,
 				Description: "Directory",
 			})
 		}
@@ -75,7 +75,7 @@ func (d *DefaultCompleter) completeEnvVars(args []string) []shellinput.Completio
 		key := parts[0]
 		if strings.HasPrefix(key, prefix) {
 			candidates = append(candidates, shellinput.CompletionCandidate{
-				Value: key,
+				Value:       key,
 				Description: "Environment Variable",
 			})
 		}
@@ -96,7 +96,7 @@ func (d *DefaultCompleter) completeSSHHosts(args []string) []shellinput.Completi
 	if err == nil {
 		configPath := filepath.Join(home, ".ssh", "config")
 		if file, err := os.Open(configPath); err == nil {
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			scanner := bufio.NewScanner(file)
 			for scanner.Scan() {
 				line := strings.TrimSpace(scanner.Text())
@@ -122,7 +122,7 @@ func (d *DefaultCompleter) completeSSHHosts(args []string) []shellinput.Completi
 	for host := range hosts {
 		if strings.HasPrefix(host, prefix) {
 			candidates = append(candidates, shellinput.CompletionCandidate{
-				Value: host,
+				Value:       host,
 				Description: "SSH Host",
 			})
 		}
@@ -145,7 +145,7 @@ func (d *DefaultCompleter) completeMakeTargets(args []string) []shellinput.Compl
 	for _, mk := range makefiles {
 		path := filepath.Join(cwd, mk)
 		if file, err := os.Open(path); err == nil {
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			scanner := bufio.NewScanner(file)
 			for scanner.Scan() {
 				line := scanner.Text()
@@ -159,7 +159,7 @@ func (d *DefaultCompleter) completeMakeTargets(args []string) []shellinput.Compl
 					for _, t := range targets {
 						if strings.HasPrefix(t, prefix) {
 							candidates = append(candidates, shellinput.CompletionCandidate{
-								Value: t,
+								Value:       t,
 								Description: "Make target",
 							})
 						}
@@ -193,7 +193,7 @@ func (d *DefaultCompleter) completeKillSignals(args []string) []shellinput.Compl
 		for _, sig := range signals {
 			if strings.HasPrefix(sig, prefix) {
 				candidates = append(candidates, shellinput.CompletionCandidate{
-					Value: sig,
+					Value:       sig,
 					Description: "Signal",
 				})
 			}

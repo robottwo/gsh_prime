@@ -62,11 +62,11 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		prefix         string
-		currentDir     string
-		expectedMin    int
-		shouldContain  []string
+		name             string
+		prefix           string
+		currentDir       string
+		expectedMin      int
+		shouldContain    []string
 		shouldNotContain []string
 	}{
 		{
@@ -77,27 +77,27 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 			shouldContain: []string{"file1.txt", "file2.log", norm("documents/"), norm("projects/"), "spaced name.txt"},
 		},
 		{
-			name:          "file prefix matching",
-			prefix:        "file",
-			currentDir:    tmpDir,
-			expectedMin:   2,
-			shouldContain: []string{"file1.txt", "file2.log"},
+			name:             "file prefix matching",
+			prefix:           "file",
+			currentDir:       tmpDir,
+			expectedMin:      2,
+			shouldContain:    []string{"file1.txt", "file2.log"},
 			shouldNotContain: []string{norm("documents/"), norm("projects/")},
 		},
 		{
-			name:          "directory prefix matching",
-			prefix:        "doc",
-			currentDir:    tmpDir,
-			expectedMin:   1,
-			shouldContain: []string{norm("documents/")},
+			name:             "directory prefix matching",
+			prefix:           "doc",
+			currentDir:       tmpDir,
+			expectedMin:      1,
+			shouldContain:    []string{norm("documents/")},
 			shouldNotContain: []string{"file1.txt", norm("projects/")},
 		},
 		{
-			name:          "hidden file matching",
-			prefix:        ".h",
-			currentDir:    tmpDir,
-			expectedMin:   1,
-			shouldContain: []string{".hidden"},
+			name:             "hidden file matching",
+			prefix:           ".h",
+			currentDir:       tmpDir,
+			expectedMin:      1,
+			shouldContain:    []string{".hidden"},
 			shouldNotContain: []string{"file1.txt", norm("documents/")},
 		},
 		{
@@ -115,28 +115,28 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 			shouldContain: []string{norm("projects/project1/"), norm("projects/main.go")},
 		},
 		{
-			name:          "partial file in subdirectory",
-			prefix:        norm("documents/doc1"),
-			currentDir:    tmpDir,
-			expectedMin:   1,
-			shouldContain: []string{norm("documents/doc1.pdf")},
+			name:             "partial file in subdirectory",
+			prefix:           norm("documents/doc1"),
+			currentDir:       tmpDir,
+			expectedMin:      1,
+			shouldContain:    []string{norm("documents/doc1.pdf")},
 			shouldNotContain: []string{norm("documents/doc2.txt")},
 		},
 		{
-			name:          "absolute path completion",
-			prefix:        filepath.Join(tmpDir, "file"),
-			currentDir:    "/",
-			expectedMin:   2,
+			name:        "absolute path completion",
+			prefix:      filepath.Join(tmpDir, "file"),
+			currentDir:  "/",
+			expectedMin: 2,
 			shouldContain: []string{
 				filepath.Join(tmpDir, "file1.txt"),
 				filepath.Join(tmpDir, "file2.log"),
 			},
 		},
 		{
-			name:          "absolute directory completion",
-			prefix:        filepath.Join(tmpDir, "documents") + string(os.PathSeparator),
-			currentDir:    "/",
-			expectedMin:   2,
+			name:        "absolute directory completion",
+			prefix:      filepath.Join(tmpDir, "documents") + string(os.PathSeparator),
+			currentDir:  "/",
+			expectedMin: 2,
 			shouldContain: []string{
 				filepath.Join(tmpDir, "documents", "doc1.pdf"),
 				filepath.Join(tmpDir, "documents", "doc2.txt"),
@@ -149,14 +149,14 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 		// Create a test file in home directory for testing
 		testFile := filepath.Join(homeDir, ".test_completion_file")
 		_ = os.WriteFile(testFile, []byte("test"), 0644)
-		defer os.Remove(testFile)
+		defer func() { _ = os.Remove(testFile) }()
 
 		tests = append(tests, struct {
-			name           string
-			prefix         string
-			currentDir     string
-			expectedMin    int
-			shouldContain  []string
+			name             string
+			prefix           string
+			currentDir       string
+			expectedMin      int
+			shouldContain    []string
 			shouldNotContain []string
 		}{
 			name:          "home directory expansion",
@@ -194,10 +194,10 @@ func TestGetFileCompletions_RelativePaths_Integration(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	structure := map[string][]string{
-		"level1":              {"file_l1.txt"},
-		"level1/level2":       {"file_l2.txt"},
+		"level1":               {"file_l1.txt"},
+		"level1/level2":        {"file_l2.txt"},
 		"level1/level2/level3": {"file_l3.txt"},
-		"sibling":             {"sibling_file.txt"},
+		"sibling":              {"sibling_file.txt"},
 	}
 
 	for dir, files := range structure {
@@ -217,11 +217,11 @@ func TestGetFileCompletions_RelativePaths_Integration(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		workingDir     string
-		prefix         string
-		expectedMin    int
-		shouldContain  []string
+		name             string
+		workingDir       string
+		prefix           string
+		expectedMin      int
+		shouldContain    []string
 		shouldNotContain []string
 	}{
 		{
@@ -253,11 +253,11 @@ func TestGetFileCompletions_RelativePaths_Integration(t *testing.T) {
 			shouldContain: []string{norm("level1/level2/level3/file_l3.txt")},
 		},
 		{
-			name:          "partial relative path",
-			workingDir:    tmpDir,
-			prefix:        norm("level1/file"),
-			expectedMin:   1,
-			shouldContain: []string{norm("level1/file_l1.txt")},
+			name:             "partial relative path",
+			workingDir:       tmpDir,
+			prefix:           norm("level1/file"),
+			expectedMin:      1,
+			shouldContain:    []string{norm("level1/file_l1.txt")},
 			shouldNotContain: []string{norm("level1/level2/")},
 		},
 	}
@@ -383,9 +383,9 @@ func TestGetFileCompletions_Permissions_Integration(t *testing.T) {
 
 	// Create files with different permissions
 	files := map[string]os.FileMode{
-		"readable.txt":      0644,
-		"writable.txt":      0200,
-		"executable.sh":     0755,
+		"readable.txt":       0644,
+		"writable.txt":       0200,
+		"executable.sh":      0755,
 		"no_permissions.txt": 0000,
 	}
 
@@ -399,9 +399,9 @@ func TestGetFileCompletions_Permissions_Integration(t *testing.T) {
 
 	// Create directories with different permissions
 	dirs := map[string]os.FileMode{
-		"readable_dir":       0755,
-		"no_read_dir":        0000,
-		"no_execute_dir":     0644,
+		"readable_dir":   0755,
+		"no_read_dir":    0000,
+		"no_execute_dir": 0644,
 	}
 
 	for dir, mode := range dirs {

@@ -611,8 +611,8 @@ echo '{"Value":"global-option3","Description":"json desc"}'
 	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 	require.NoError(t, err)
 
-	os.Setenv("GSH_COMPLETION_COMMAND", scriptPath)
-	defer os.Unsetenv("GSH_COMPLETION_COMMAND")
+	_ = os.Setenv("GSH_COMPLETION_COMMAND", scriptPath)
+	defer func() { _ = os.Unsetenv("GSH_COMPLETION_COMMAND") }()
 
 	tests := []struct {
 		name          string
