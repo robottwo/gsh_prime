@@ -6,12 +6,55 @@ import (
 	"strings"
 
 	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/charmbracelet/lipgloss"
 )
 
 // fileCompleter is the function type for file completion
 type fileCompleter func(prefix string, currentDirectory string) []shellinput.CompletionCandidate
 
 // commandCompleter is the function type for command completion
+
+// formatFileDisplay formats a file name with colors and indicators similar to ls --color -F
+func formatFileDisplay(name string, entry os.DirEntry) string {
+	var style lipgloss.Style
+	var indicator string
+
+	if entry.IsDir() {
+		// Directories: blue/bold with trailing /
+		style = lipgloss.NewStyle().Foreground(lipgloss.Color("33")).Bold(true) // Blue
+		indicator = "/"
+	} else {
+		// Check if executable
+		info, err := entry.Info()
+		if err == nil && info.Mode()&0111 != 0 {
+			// Executable files: green/bold with trailing *
+			style = lipgloss.NewStyle().Foreground(lipgloss.Color("34")).Bold(true) // Green
+			indicator = "*"
+		} else {
+			// Check file extension for special types
+			ext := filepath.Ext(name)
+			switch ext {
+			case ".tar", ".gz", ".zip", ".7z", ".bz2", ".xz", ".rar":
+				// Archives: red/bold
+				style = lipgloss.NewStyle().Foreground(lipgloss.Color("31")).Bold(true) // Red
+			case ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".svg", ".ico":
+				// Images: magenta/bold
+				style = lipgloss.NewStyle().Foreground(lipgloss.Color("35")).Bold(true) // Magenta
+			case ".mp3", ".wav", ".flac", ".ogg", ".m4a":
+				// Audio: cyan/bold
+				style = lipgloss.NewStyle().Foreground(lipgloss.Color("36")).Bold(true) // Cyan
+			case ".mp4", ".avi", ".mkv", ".mov", ".wmv":
+				// Video: magenta/bold
+				style = lipgloss.NewStyle().Foreground(lipgloss.Color("35")).Bold(true) // Magenta
+			default:
+				// Regular files: default color
+				style = lipgloss.NewStyle()
+			}
+		}
+	}
+
+	return style.Render(name) + indicator
+}
 
 // getFileCompletions is the default implementation of file completion
 var getFileCompletions fileCompleter = func(prefix string, currentDirectory string) []shellinput.CompletionCandidate {
@@ -26,7 +69,8 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		for _, entry := range entries {
 			name := entry.Name()
 			candidate := shellinput.CompletionCandidate{
-				Value: name,
+				Value:   name,
+				Display: formatFileDisplay(name, entry),
 			}
 			// Add trailing slash as suffix for directories
 			if entry.IsDir() {
@@ -141,7 +185,8 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 
 		// Create completion candidate
 		candidate := shellinput.CompletionCandidate{
-			Value: completionPath,
+			Value:   completionPath,
+			Display: formatFileDisplay(name, entry),
 		}
 
 		// Add trailing slash as suffix for directories (not in Value)

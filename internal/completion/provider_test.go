@@ -37,9 +37,10 @@ var mockGetFileCompletions fileCompleter = func(prefix, currentDirectory string)
 		}
 	case "":
 		// Empty prefix means list everything in current directory
+		// Note: On Windows, os.PathSeparator is '\', on Unix it's '/'
 		return []shellinput.CompletionCandidate{
-			{Value: "folder1", Suffix: "/"},
-			{Value: "folder2", Suffix: "/"},
+			{Value: "folder1", Suffix: string(os.PathSeparator)},
+			{Value: "folder2", Suffix: string(os.PathSeparator)},
 			{Value: "file1.txt"},
 			{Value: "file2.txt"},
 		}
@@ -284,8 +285,8 @@ func TestGetCompletions(t *testing.T) {
 				manager.On("GetSpec", "cd").Return(CompletionSpec{}, false)
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "folder1", Suffix: "/", Description: "Directory"},
-				{Value: "folder2", Suffix: "/", Description: "Directory"},
+				{Value: "folder1", Suffix: string(os.PathSeparator), Description: "Directory"},
+				{Value: "folder2", Suffix: string(os.PathSeparator), Description: "Directory"},
 			},
 		},
 		{
@@ -296,8 +297,8 @@ func TestGetCompletions(t *testing.T) {
 				manager.On("GetSpec", "cd").Return(CompletionSpec{}, false)
 			},
 			expected: []shellinput.CompletionCandidate{
-				{Value: "folder1", Suffix: "/", Description: "Directory"},
-				{Value: "folder2", Suffix: "/", Description: "Directory"},
+				{Value: "folder1", Suffix: string(os.PathSeparator), Description: "Directory"},
+				{Value: "folder2", Suffix: string(os.PathSeparator), Description: "Directory"},
 			},
 		},
 		{

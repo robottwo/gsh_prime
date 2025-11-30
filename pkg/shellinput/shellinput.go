@@ -40,6 +40,7 @@ import (
 	"github.com/charmbracelet/bubbles/runeutil"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/ansi"
 	"github.com/muesli/reflow/wrap"
 	"github.com/rivo/uniseg"
 )
@@ -934,9 +935,12 @@ func (m Model) CompletionBoxView(height int, width int) string {
 			hasDescriptions = true
 		}
 
-		displayWidth := uniseg.StringWidth(s.Display)
-		if displayWidth == 0 {
-			displayWidth = uniseg.StringWidth(s.Value)
+		// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
+		displayWidth := 0
+		if s.Display != "" {
+			displayWidth = ansi.PrintableRuneWidth(s.Display)
+		} else {
+			displayWidth = ansi.PrintableRuneWidth(s.Value)
 		}
 		if displayWidth > maxCandidateWidth {
 			maxCandidateWidth = displayWidth
@@ -1021,13 +1025,16 @@ func (m Model) CompletionBoxView(height int, width int) string {
 			if hasDescriptions {
 				// Render as two columns: Candidate | Description
 				// Pad the candidate to align descriptions
-				padding := maxCandidateWidth - uniseg.StringWidth(displayText) + 2
+				// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
+				visualWidth := ansi.PrintableRuneWidth(displayText)
+				padding := maxCandidateWidth - visualWidth + 2
 				itemStr += strings.Repeat(" ", padding)
 				itemStr += lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render(candidate.Description)
 			} else {
 				// Pad the column (except the last one)
 				if c < numColumns-1 {
-					itemWidth := uniseg.StringWidth(itemStr)
+					// Use ansi.PrintableRuneWidth to get visual width without ANSI codes
+					itemWidth := ansi.PrintableRuneWidth(itemStr)
 					if itemWidth < maxItemWidth {
 						itemStr += strings.Repeat(" ", maxItemWidth-itemWidth)
 					} else {
