@@ -20,6 +20,7 @@ import (
 	"github.com/atinylittleshell/gsh/internal/styles"
 	"github.com/atinylittleshell/gsh/internal/subagent"
 	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"

@@ -57,16 +57,9 @@ func (h historySource) Len() int {
 	return len(h)
 }
 
-// SetRichHistory sets the history items for the rich search and updates standard history values
+// SetRichHistory sets the history items for the rich search
 func (m *Model) SetRichHistory(items []HistoryItem) {
 	m.historyItems = items
-
-	// Update legacy history values for Up/Down navigation
-	strs := make([]string, len(items))
-	for i, item := range items {
-		strs[i] = item.Command
-	}
-	m.SetHistoryValues(strs)
 }
 
 // SetCurrentDirectory sets the current directory for filtering history

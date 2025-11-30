@@ -97,7 +97,7 @@ type KeyMap struct {
 // DefaultKeyMap is the default set of key bindings for navigating and acting
 // upon the textinput.
 var DefaultKeyMap = KeyMap{
-	CharacterForward:        key.NewBinding(key.WithKeys("right")),
+	CharacterForward:        key.NewBinding(key.WithKeys("right", "ctrl+f")),
 	CharacterBackward:       key.NewBinding(key.WithKeys("left", "ctrl+b")),
 	WordForward:             key.NewBinding(key.WithKeys("alt+right", "ctrl+right", "alt+f")),
 	WordBackward:            key.NewBinding(key.WithKeys("alt+left", "ctrl+left", "alt+b")),
