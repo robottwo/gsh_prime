@@ -77,7 +77,7 @@ func TestFileCompletions(t *testing.T) {
 		currentDir  string
 		expected    []string
 		shouldMatch bool                                 // true for exact match, false for contains
-		verify      func(t *testing.T, results []string) // optional additional verification
+		verify      func(t *testing.T, results []shellinput.CompletionCandidate) // optional additional verification
 	}{
 		{
 			name:        "empty prefix lists all files",

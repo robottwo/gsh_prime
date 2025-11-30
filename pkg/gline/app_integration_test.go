@@ -67,15 +67,17 @@ type mockExplainer struct {
 }
 
 func newMockExplainer() *mockExplainer {
-	return &mockExplainer{
-		explanations: map[string]string{
-			"git status": "Shows the status of the working directory",
-			"docker ps":  "Lists running Docker containers",
-			"ls -la":     "Lists all files in long format including hidden files",
-			"cd ~/":      "Changes to the home directory",
-			"vim .":      "Opens vim editor in the current directory",
-		},
-		delay: 0, // No delay by default for faster tests
+        return &mockExplainer{
+                explanations: map[string]string{
+                        "git":       "General git command help",
+                        "git status": "Shows the status of the working directory",
+                        "docker ps":  "Lists running Docker containers",
+                        "ls":         "Lists files in the current directory",
+                        "ls -la":     "Lists all files in long format including hidden files",
+                        "cd ~/":      "Changes to the home directory",
+                        "vim .":      "Opens vim editor in the current directory",
+                },
+                delay: 0, // No delay by default for faster tests
 	}
 }
 
@@ -370,8 +372,8 @@ func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
 		}
 	}
 
-	assert.NotEmpty(t, model.explanation, "Assistant help should refresh even while suggestions are suppressed")
-	assert.Empty(t, model.textInput.MatchedSuggestions(), "Suggestions should stay hidden until the user types again")
+        assert.Equal(t, "General git command help", model.explanation, "Assistant help should derive from the remaining buffer while suggestions are suppressed")
+        assert.Empty(t, model.textInput.MatchedSuggestions(), "Suggestions should stay hidden until the user types again")
 
 	// Resume predictions after the user provides more input
 	updatedModel, predictionCmd := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})

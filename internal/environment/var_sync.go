@@ -108,16 +108,6 @@ func SyncVariablesToEnv(runner *interp.Runner) {
 
 		_ = os.Unsetenv(varName)
 		delete(dynamicEnv.gshVars, varName)
-=======
-			if err := os.Setenv(varName, value); err == nil {
-				dynamicEnv.UpdateGSHVar(varName, value)
-			}
-			continue
-		}
-
-		if err := os.Unsetenv(varName); err == nil {
-			delete(dynamicEnv.gshVars, varName)
-		}
 	}
 
 	// Update the system environment in the dynamic environment

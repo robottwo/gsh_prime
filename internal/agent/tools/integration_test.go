@@ -57,8 +57,6 @@ func TestIntegration(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -83,8 +81,6 @@ func TestPreApproval(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -162,8 +158,6 @@ func TestFileOperations(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -218,8 +212,6 @@ func TestFileOperations(t *testing.T) {
 		environment.SetAuthorizedCommandsFileForTesting(nonExistentFile)
 		t.Cleanup(func() {
 			environment.SetAuthorizedCommandsFileForTesting(tempAuthorizedFile)
-		}()
-=======
 			assert.NoError(t, os.RemoveAll(nonExistentFile))
 		})
 
@@ -250,8 +242,6 @@ func TestFileOperations(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 }
@@ -272,8 +262,6 @@ func TestGetApprovedBashCommandRegexIntegration(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -370,8 +358,6 @@ func TestInvalidRegexHandling(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -444,8 +430,6 @@ func TestBashToolWithPreApprovedCommands(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -531,8 +515,6 @@ func TestFilePermissionIssues(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 
@@ -572,8 +554,6 @@ func TestEdgeCases(t *testing.T) {
 	t.Cleanup(func() {
 		environment.SetConfigDirForTesting(oldConfigDir)
 		environment.SetAuthorizedCommandsFileForTesting(oldAuthorizedFile)
-	}()
-=======
 		assert.NoError(t, os.RemoveAll(tempConfigDir))
 	})
 

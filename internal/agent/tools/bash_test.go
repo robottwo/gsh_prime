@@ -246,12 +246,17 @@ func TestBashToolWithPreApprovedCommand(t *testing.T) {
 	// Create temporary database for testing
 	tempDB, err := os.CreateTemp("", "test_history.db")
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		require.NoError(t, os.Remove(tempDB.Name()))
-	})
+	tempDBPath := tempDB.Name()
+	// Close the file handle immediately so the HistoryManager can open it exclusively
+	require.NoError(t, tempDB.Close())
 
-	historyManager, err := history.NewHistoryManager(tempDB.Name())
+	historyManager, err := history.NewHistoryManager(tempDBPath)
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		// Close the database connection before removing the file (required on Windows)
+		_ = historyManager.Close()
+		_ = os.Remove(tempDBPath)
+	})
 
 	// Test with pre-approved command - should execute without user confirmation
 	params := map[string]any{
