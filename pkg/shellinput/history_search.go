@@ -46,17 +46,6 @@ type historySearchState struct {
 	currentDir      string // used for filtering by directory
 }
 
-// historySource adapts []HistoryItem for fuzzy matching
-type historySource []HistoryItem
-
-func (h historySource) String(i int) string {
-	return h[i].Command
-}
-
-func (h historySource) Len() int {
-	return len(h)
-}
-
 // SetRichHistory sets the history items for the rich search
 func (m *Model) SetRichHistory(items []HistoryItem) {
 	m.historyItems = items
@@ -77,9 +66,10 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 		height = 5 // default fallback
 	}
 
-	// Calculate header height (filter info)
+	// Calculate header and footer height
 	headerHeight := 1
-	listHeight := height - headerHeight
+	footerHeight := 1
+	listHeight := height - headerHeight - footerHeight
 	if listHeight < 1 {
 		listHeight = 1
 	}
@@ -92,16 +82,20 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 	selectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("14")) // Cyan for selected
 	normalStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("252")) // White/Light Gray for normal
 	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))    // Dim gray for metadata
+	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("243"))   // Slightly brighter for help
 
 	// Render Header
 	// e.g. "Filter: All (Ctrl+F) | 35 matches"
-	filterText := fmt.Sprintf("Filter: %s (Ctrl+F)", m.historySearchState.filterMode.String())
+	filterText := fmt.Sprintf("Filter: %s", m.historySearchState.filterMode.String())
 	matchCount := len(m.historySearchState.filteredIndices)
 	header := headerStyle.Render(fmt.Sprintf("%s | %d matches", filterStyle.Render(filterText), matchCount))
 	content.WriteString(header + "\n")
 
 	if matchCount == 0 {
 		content.WriteString(lipgloss.NewStyle().Padding(0, 1).Foreground(lipgloss.Color("240")).Render("No history matches found"))
+		content.WriteString("\n")
+		helpText := "Ctrl+F: Toggle filter | Enter: Select | Esc: Cancel"
+		content.WriteString(helpStyle.Render(helpText))
 		return content.String()
 	}
 
@@ -201,6 +195,11 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 		}
 	}
 
+	// Add help footer
+	content.WriteString("\n")
+	helpText := "Ctrl+F: Toggle filter | Enter: Select | Esc: Cancel"
+	content.WriteString(helpStyle.Render(helpText))
+
 	return content.String()
 }
 
@@ -208,10 +207,17 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 func (m *Model) updateHistorySearch() {
 	query := m.reverseSearchQuery
 
-	// Create a subset of items based on filter mode first
+	// Create a subset of items based on filter mode first, deduplicating by command
+	// We keep track of seen commands to only include the first (most recent) occurrence
+	seen := make(map[string]bool)
 	var candidates []int // indices into historyItems
 
 	for i, item := range m.historyItems {
+		// Skip duplicates - keep only the first (most recent) occurrence of each command
+		if seen[item.Command] {
+			continue
+		}
+
 		match := true
 		switch m.historySearchState.filterMode {
 		case HistoryFilterDirectory:
@@ -227,6 +233,7 @@ func (m *Model) updateHistorySearch() {
 		}
 
 		if match {
+			seen[item.Command] = true
 			candidates = append(candidates, i)
 		}
 	}

@@ -319,7 +319,12 @@ func (m appModel) View() string {
 	var assistantContent string
 
 	// We need to handle truncation manually because lipgloss Height doesn't truncate automatically
+	// Use expanded height when in reverse search mode (close to full screen)
 	availableHeight := m.options.AssistantHeight
+	if m.textInput.InReverseSearch() && m.height > 0 {
+		// Use most of terminal height, leaving room for prompt line (2) and borders (2)
+		availableHeight = max(m.options.AssistantHeight, m.height-4)
+	}
 
 	// Display error if present
 	if m.lastError != nil {

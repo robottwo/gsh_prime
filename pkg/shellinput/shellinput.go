@@ -1367,16 +1367,6 @@ func (m *Model) toggleReverseSearch() {
 	}
 }
 
-// cycleNextMatch moves to the next match (older in history).
-func (m *Model) cycleNextMatch() {
-	// Deprecated in favor of historySearchUp
-}
-
-// cyclePrevMatch moves to the previous match (newer in history).
-func (m *Model) cyclePrevMatch() {
-	// Deprecated in favor of historySearchDown
-}
-
 // acceptRichReverseSearch accepts the currently selected history item.
 func (m *Model) acceptRichReverseSearch() {
 	if len(m.historySearchState.filteredIndices) > 0 {
@@ -1389,16 +1379,6 @@ func (m *Model) acceptRichReverseSearch() {
 				m.CursorEnd()
 			}
 		}
-	}
-	m.inReverseSearch = false
-}
-
-// acceptReverseSearch accepts the current match and exits reverse search mode.
-func (m *Model) acceptReverseSearch() {
-	if len(m.reverseSearchMatches) > 0 {
-		matchIndex := m.reverseSearchMatches[m.reverseSearchMatchIndex]
-		m.selectedValueIndex = matchIndex
-		m.SetCursor(len(m.values[matchIndex]))
 	}
 	m.inReverseSearch = false
 }
