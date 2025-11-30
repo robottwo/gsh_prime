@@ -771,12 +771,13 @@ func (m Model) View() string {
 	var v string
 	v += m.PromptStyle.Render(m.Prompt)
 
+	var highlighted []string
 	if m.EchoMode == EchoNormal {
-		// Apply syntax highlighting
-		highlighted := Highlight(value)
+		// Apply syntax highlighting once
+		highlighted = Highlight(value)
 
 		// Render text before cursor
-		if pos > 0 {
+		if pos > 0 && pos <= len(highlighted) {
 			v += strings.Join(highlighted[:pos], "")
 		}
 	} else {
@@ -801,8 +802,9 @@ func (m Model) View() string {
 		v += m.Cursor.View() // cursor and text under it
 
 		if m.EchoMode == EchoNormal {
-			highlighted := Highlight(value)
-			v += strings.Join(highlighted[pos+1:], "")
+			if pos+1 < len(highlighted) {
+				v += strings.Join(highlighted[pos+1:], "")
+			}
 		} else {
 			v += styleText(m.echoTransform(string(value[pos+1:])))
 		}
