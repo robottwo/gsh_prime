@@ -413,8 +413,18 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 	} else if suggestionsCleared {
 		// User trimmed away ghost suggestions (e.g., via Ctrl+K) without changing
 		// the underlying input. Clear any pending prediction and explanation so the
-		// assistant box reflects the truncated command.
+		// assistant box reflects the truncated command, and re-request a prediction
+		// for the remaining buffer so the assistant can refresh its help content.
 		m.clearPrediction()
+
+		if m.predictor != nil {
+			m.predictionStateId++
+			if len(m.textInput.Value()) > 0 {
+				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+					return attemptPredictionMsg{stateId: m.predictionStateId}
+				}))
+			}
+		}
 	}
 
 	return m, cmd

@@ -334,6 +334,65 @@ func TestCtrlKRerequestsPredictionWhenTextRemains(t *testing.T) {
 	assert.Equal(t, "Shows the status of the working directory", model.explanation, "Explanation should refresh for the trimmed input")
 }
 
+func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	options := NewOptions()
+
+	model := initialModel(
+		"test> ",
+		[]string{},
+		"",
+		predictor,
+		explainer,
+		nil,
+		logger,
+		options,
+	)
+
+	model.textInput.SetValue("git")
+	model.textInput.SetCursor(len("git"))
+
+	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming")
+
+	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	model = updatedModel.(appModel)
+
+	require.Equal(t, "git", model.textInput.Value(), "Ctrl+K should leave the buffer unchanged when there's no text after the cursor")
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Matched suggestions should clear when trimming autocompletion text")
+
+	if cmd != nil {
+		msg := cmd()
+		if attemptMsg, ok := msg.(attemptPredictionMsg); ok {
+			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
+			model = predictionModel.(appModel)
+
+			if predictionCmd != nil {
+				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
+					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					if predictionCmd != nil {
+						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
+							explanationModel, explanationCmd := model.attemptExplanation(attemptExplMsg)
+							model = explanationModel.(appModel)
+							if explanationCmd != nil {
+								if explMsg, ok := explanationCmd().(setExplanationMsg); ok {
+									explanationModel, _ = model.setExplanation(explMsg)
+									model = explanationModel.(appModel)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	assert.Equal(t, "git status", model.prediction, "Prediction should be re-requested even when Ctrl+K deletes no additional text")
+	assert.Equal(t, "Shows the status of the working directory", model.explanation, "Explanation should refresh after Ctrl+K even if the buffer did not change")
+}
+
 func TestApp_KeyHandling_Integration(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	predictor := newMockPredictor()
