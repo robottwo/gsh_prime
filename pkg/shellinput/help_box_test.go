@@ -264,3 +264,30 @@ func TestHelpBoxFollowsMatchedSuggestions(t *testing.T) {
 	assert.Equal(t, "**ls** - List directory contents", helpBox)
 	assert.True(t, model.completion.shouldShowHelpBox(), "Help box should remain visible when falling back to buffer help")
 }
+
+func TestHelpBoxPrefersBufferHelpWhileSuggestionsSuppressed(t *testing.T) {
+	model := New()
+	model.Focus()
+	model.ShowSuggestions = true
+	model.CompletionProvider = &mockSuggestionHelpProvider{}
+
+	model.SetValue("ls -la")
+	model.SetCursor(len("ls"))
+
+	model.SetSuggestions([]string{"ls -la"})
+	model.UpdateHelpInfo()
+
+	helpBox := model.HelpBoxView()
+	assert.Equal(t, "**ls -la** - Lists all files in long format including hidden files", helpBox)
+
+	model.deleteAfterCursor()
+
+	// Simulate predictions arriving while suggestions are suppressed.
+	model.SetSuggestions([]string{"ls -la"})
+	model.matchedSuggestions = [][]rune{[]rune("ls -la")}
+	model.UpdateHelpInfo()
+
+	helpBox = model.HelpBoxView()
+	assert.Equal(t, "**ls** - List directory contents", helpBox)
+	assert.True(t, model.SuggestionsSuppressedUntilInput())
+}

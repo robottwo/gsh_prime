@@ -229,8 +229,10 @@ func (m *Model) updateHelpInfo() {
 
 	var helpInfo string
 
-	// If completion is active and a suggestion is selected, show help for the selected suggestion
-	if m.completion.active && m.completion.selected >= 0 && m.completion.selected < len(m.completion.suggestions) {
+	if m.suppressSuggestionsUntilInput {
+		helpInfo = m.CompletionProvider.GetHelpInfo(m.Value(), m.Position())
+	} else if m.completion.active && m.completion.selected >= 0 && m.completion.selected < len(m.completion.suggestions) {
+		// If completion is active and a suggestion is selected, show help for the selected suggestion
 		selectedSuggestion := m.completion.suggestions[m.completion.selected].Value
 		// For help purposes, we want to get help for the selected suggestion
 		// We'll use the length of the suggestion as the position to ensure we get the full command
