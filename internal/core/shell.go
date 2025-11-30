@@ -167,7 +167,7 @@ func RunInteractiveShell(
 				}
 
 				if fixedCmd != "" {
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("\nRun this fix? [Y/n] ")) + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nRun this fix? [Y/n] ") + gline.RESET_CURSOR_COLUMN)
 
 					var confirm string
 					_, _ = fmt.Scanln(&confirm)
