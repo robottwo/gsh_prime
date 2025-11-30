@@ -34,8 +34,13 @@ func (c *StderrCapturer) Write(p []byte) (n int, err error) {
 			c.buffer = new(bytes.Buffer)
 		}
 		// Limit buffer size to avoid memory issues (e.g., 64KB is enough for error messages)
-		if c.buffer.Len() < 64*1024 {
-			c.buffer.Write(p)
+		remaining := 64*1024 - c.buffer.Len()
+		if remaining > 0 {
+			toWrite := p
+			if len(toWrite) > remaining {
+				toWrite = toWrite[:remaining]
+			}
+			c.buffer.Write(toWrite)
 		}
 	}
 	c.mu.Unlock()

@@ -37,7 +37,7 @@ func TestCreateFileToolParams(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "y"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -105,7 +105,7 @@ func TestCreateFile(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "y"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -173,7 +173,7 @@ func TestCreateFileToolWithRelativePath(t *testing.T) {
 	runner.Vars["PWD"] = expand.Variable{Kind: expand.String, Str: tempDir}
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "y"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -199,7 +199,7 @@ func TestCreateFileToolUserDeclines(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "n"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -220,7 +220,7 @@ func TestCreateFileToolManagePermissions(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "manage"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -245,7 +245,7 @@ func TestCreateFileToolFreeformResponse(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "custom freeform response"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -264,7 +264,7 @@ func TestCreateFileToolFileOperationErrors(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "y"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -311,7 +311,7 @@ func TestCreateFileToolWithExistingFile(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "y"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()
@@ -346,7 +346,7 @@ func TestCreateFileToolContentVariations(t *testing.T) {
 	runner, _ := interp.New()
 
 	origUserConfirmation := userConfirmation
-	userConfirmation = func(logger *zap.Logger, question string, explanation string) string {
+	userConfirmation = func(logger *zap.Logger, runner *interp.Runner, question string, explanation string) string {
 		return "y"
 	}
 	defer func() { userConfirmation = origUserConfirmation }()

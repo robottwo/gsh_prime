@@ -22,6 +22,7 @@ import (
 	"github.com/atinylittleshell/gsh/internal/subagent"
 	"github.com/atinylittleshell/gsh/pkg/gline"
 	"go.uber.org/zap"
+	"golang.org/x/term"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -167,13 +168,41 @@ func RunInteractiveShell(
 				}
 
 				if fixedCmd != "" {
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nRun this fix? [Y/n] ") + gline.RESET_CURSOR_COLUMN)
+					defaultToYes := environment.GetDefaultToYes(runner)
+					promptText := "Run this fix? [y/N] "
+					if defaultToYes {
+						promptText = "Run this fix? [Y/n] "
+					}
 
-					var confirm string
-					_, _ = fmt.Scanln(&confirm)
-					confirm = strings.ToLower(strings.TrimSpace(confirm))
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\nCommand: "+fixedCmd+"\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
 
-					if confirm == "y" || confirm == "yes" || confirm == "" {
+					// Read single key in raw mode
+					fd := int(os.Stdin.Fd())
+					oldState, err := term.MakeRaw(fd)
+					if err != nil {
+						logger.Error("failed to set raw mode", zap.Error(err))
+						continue
+					}
+					var buf [1]byte
+					_, _ = os.Stdin.Read(buf[:])
+					_ = term.Restore(fd, oldState)
+
+					char := buf[0]
+					// Echo the character and newline
+					if char == '\r' || char == '\n' {
+						fmt.Println()
+					} else {
+						fmt.Printf("%c\n", char)
+					}
+
+					// Determine if confirmed based on default setting
+					confirmed := char == 'y' || char == 'Y'
+					if defaultToYes && (char == '\r' || char == '\n') {
+						confirmed = true
+					}
+
+					if confirmed {
 						fmt.Println()
 						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, runner, logger, state, stderrCapturer)
 						if err != nil {
