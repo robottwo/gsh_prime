@@ -401,10 +401,13 @@ func (m appModel) getFinalOutput() string {
 
 func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 	oldVal := m.textInput.Value()
+	oldMatchedSuggestions := m.textInput.MatchedSuggestions()
 	updatedTextInput, cmd := m.textInput.Update(msg)
 	newVal := updatedTextInput.Value()
+	newMatchedSuggestions := updatedTextInput.MatchedSuggestions()
 
 	textUpdated := oldVal != newVal
+	suggestionsCleared := len(oldMatchedSuggestions) > 0 && len(newMatchedSuggestions) == 0
 	m.textInput = updatedTextInput
 
 	// if the text input has changed, we want to attempt a prediction
@@ -425,7 +428,7 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 			// if the model was dirty earlier, but now the user has cleared the input,
 			// we should clear the prediction
 			m.clearPrediction()
-		} else if len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) {
+		} else if len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) && !suggestionsCleared {
 			// if the prediction already starts with the user input, we don't need to predict again
 			m.logger.Debug("gline existing predicted input already starts with user input", zap.String("userInput", userInput))
 		} else {
@@ -437,6 +440,21 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 					stateId: m.predictionStateId,
 				}
 			}))
+		}
+	} else if suggestionsCleared {
+		// User trimmed away ghost suggestions (e.g., via Ctrl+K) without changing
+		// the underlying input. Clear any pending prediction and explanation so the
+		// assistant box reflects the truncated command, and re-request a prediction
+		// for the remaining buffer so the assistant can refresh its help content.
+		m.clearPrediction()
+
+		if m.predictor != nil {
+			m.predictionStateId++
+			if len(m.textInput.Value()) > 0 {
+				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+					return attemptPredictionMsg{stateId: m.predictionStateId}
+				}))
+			}
 		}
 	}
 
@@ -464,6 +482,7 @@ func (m appModel) setPrediction(stateId int, prediction string, inputContext str
 	m.lastPredictionInput = inputContext
 	m.lastPrediction = prediction
 	m.textInput.SetSuggestions([]string{prediction})
+	m.textInput.UpdateHelpInfo()
 	m.explanation = ""
 	return m, tea.Cmd(func() tea.Msg {
 		return attemptExplanationMsg{stateId: m.predictionStateId, prediction: prediction}

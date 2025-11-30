@@ -244,6 +244,217 @@ func TestApp_PredictionFlow_Integration(t *testing.T) {
 	}
 }
 
+func TestCtrlKClearsPredictionAndExplanation(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	options := NewOptions()
+
+	model := initialModel(
+		"test> ",
+		[]string{},
+		"",
+		predictor,
+		explainer,
+		nil,
+		logger,
+		options,
+	)
+
+	model.textInput.SetValue("git")
+	model.textInput.SetCursor(len("git"))
+
+	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions())
+
+	updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	model = updatedModel.(appModel)
+
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Ctrl+K should clear prediction-backed suggestions")
+	assert.Empty(t, model.prediction, "Ctrl+K should clear the active prediction")
+	assert.Empty(t, model.explanation, "Ctrl+K should clear any pending explanation when trimming predictions")
+}
+
+func TestCtrlKRerequestsPredictionWhenTextRemains(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	options := NewOptions()
+
+	model := initialModel(
+		"test> ",
+		[]string{},
+		"",
+		predictor,
+		explainer,
+		nil,
+		logger,
+		options,
+	)
+
+	model.textInput.SetValue("git status")
+	model.textInput.SetCursor(len("git"))
+
+	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming")
+
+	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	model = updatedModel.(appModel)
+
+	require.Equal(t, "git", model.textInput.Value(), "Ctrl+K should trim text after the cursor")
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Matched suggestions should clear when trimming autocompletion text")
+
+	if cmd != nil {
+		msg := cmd()
+		if attemptMsg, ok := msg.(attemptPredictionMsg); ok {
+			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
+			model = predictionModel.(appModel)
+
+			if predictionCmd != nil {
+				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
+					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					if predictionCmd != nil {
+						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
+							explanationModel, explanationCmd := model.attemptExplanation(attemptExplMsg)
+							model = explanationModel.(appModel)
+							if explanationCmd != nil {
+								if explMsg, ok := explanationCmd().(setExplanationMsg); ok {
+									explanationModel, _ = model.setExplanation(explMsg)
+									model = explanationModel.(appModel)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	assert.Equal(t, "git status", model.prediction, "Prediction should be re-requested for the remaining text after Ctrl+K")
+	assert.Equal(t, "Shows the status of the working directory", model.explanation, "Explanation should refresh for the trimmed input")
+}
+
+func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	options := NewOptions()
+
+	model := initialModel(
+		"test> ",
+		[]string{},
+		"",
+		predictor,
+		explainer,
+		nil,
+		logger,
+		options,
+	)
+
+	model.textInput.SetValue("git")
+	model.textInput.SetCursor(len("git"))
+
+	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming")
+
+	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	model = updatedModel.(appModel)
+
+	require.Equal(t, "git", model.textInput.Value(), "Ctrl+K should leave the buffer unchanged when there's no text after the cursor")
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Matched suggestions should clear when trimming autocompletion text")
+
+	if cmd != nil {
+		msg := cmd()
+		if attemptMsg, ok := msg.(attemptPredictionMsg); ok {
+			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
+			model = predictionModel.(appModel)
+
+			if predictionCmd != nil {
+				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
+					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+					if predictionCmd != nil {
+						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
+							explanationModel, explanationCmd := model.attemptExplanation(attemptExplMsg)
+							model = explanationModel.(appModel)
+							if explanationCmd != nil {
+								if explMsg, ok := explanationCmd().(setExplanationMsg); ok {
+									explanationModel, _ = model.setExplanation(explMsg)
+									model = explanationModel.(appModel)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	assert.Equal(t, "git status", model.prediction, "Prediction should be re-requested even when Ctrl+K deletes no additional text")
+	assert.Equal(t, "Shows the status of the working directory", model.explanation, "Explanation should refresh after Ctrl+K even if the buffer did not change")
+}
+
+func TestCtrlKRestoresSuggestionsWithoutNewInput(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	options := NewOptions()
+
+	model := initialModel(
+		"test> ",
+		[]string{},
+		"",
+		predictor,
+		explainer,
+		nil,
+		logger,
+		options,
+	)
+
+	model.textInput.SetValue("ls -la")
+	model.textInput.SetCursor(len("ls"))
+
+	model, _ = model.setPrediction(model.predictionStateId, "ls -la", "ls")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming user text")
+
+	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	model = updatedModel.(appModel)
+
+	require.Equal(t, "ls", model.textInput.Value(), "Ctrl+K should trim text after the cursor while leaving the prefix intact")
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Matched suggestions should clear after trimming autocompletion text")
+
+	if cmd != nil {
+		msg := cmd()
+		if attemptMsg, ok := msg.(attemptPredictionMsg); ok {
+			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
+			model = predictionModel.(appModel)
+
+			if predictionCmd != nil {
+				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
+					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+
+					if predictionCmd != nil {
+						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
+							explanationModel, explanationCmd := model.attemptExplanation(attemptExplMsg)
+							model = explanationModel.(appModel)
+
+							if explanationCmd != nil {
+								if explMsg, ok := explanationCmd().(setExplanationMsg); ok {
+									explanationModel, _ = model.setExplanation(explMsg)
+									model = explanationModel.(appModel)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	assert.Equal(t, "ls -la", model.prediction, "Prediction should be re-requested for the remaining text after Ctrl+K")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Suggestions should repopulate without additional typing after Ctrl+K")
+	assert.Equal(t, "Lists all files in long format including hidden files", model.explanation, "Explanation should reflect the refreshed suggestion after Ctrl+K")
+}
+
 func TestApp_KeyHandling_Integration(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	predictor := newMockPredictor()

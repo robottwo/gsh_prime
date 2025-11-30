@@ -246,6 +246,11 @@ func (m *Model) updateHelpInfo() {
 	m.completion.setHelpInfo(helpInfo)
 }
 
+// UpdateHelpInfo is the exported wrapper for refreshes triggered outside the shellinput package.
+func (m *Model) UpdateHelpInfo() {
+	m.updateHelpInfo()
+}
+
 // cancelCompletion cancels the current completion and restores original text
 func (m *Model) cancelCompletion() {
 	if m.completion.active && m.completion.originalText != "" {
