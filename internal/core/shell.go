@@ -78,6 +78,8 @@ func RunInteractiveShell(
 		explainer.UpdateContext(ragContext)
 		agent.UpdateContext(ragContext)
 
+		// Fetch recent entries for standard history (Up/Down) - scoped to current directory for now, or generally recent
+		// Note: GetRecentEntries reverses the list (oldest first) so standard history navigation works correctly
 		historyEntries, err := historyManager.GetRecentEntries(environment.GetPwd(runner), 1024)
 		if err != nil {
 			logger.Warn("error getting recent history entries", zap.Error(err))
@@ -89,10 +91,27 @@ func RunInteractiveShell(
 			historyCommands[len(historyEntries)-1-i] = historyEntries[i].Command
 		}
 
+		// Fetch all entries for rich search (Ctrl+R)
+		allHistoryEntries, err := historyManager.GetAllEntries()
+		if err != nil {
+			logger.Warn("error getting all history entries", zap.Error(err))
+			allHistoryEntries = []history.HistoryEntry{}
+		}
+
+		richHistory := make([]shellinput.HistoryItem, len(allHistoryEntries))
+		for i, entry := range allHistoryEntries {
+			richHistory[i] = shellinput.HistoryItem{
+				Command:   entry.Command,
+				Directory: entry.Directory,
+				Timestamp: entry.CreatedAt,
+			}
+		}
+
 		// Read input
 		options := gline.NewOptions()
 		options.AssistantHeight = environment.GetAssistantHeight(runner, logger)
 		options.CompletionProvider = completionProvider
+		options.RichHistory = richHistory
 
 		line, err := gline.Gline(prompt, historyCommands, "", predictor, explainer, analyticsManager, logger, options)
 
