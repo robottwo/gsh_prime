@@ -6,9 +6,20 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// Helper function to check if completions contain a specific value (combining Value and Suffix)
+func containsCompletion(completions []shellinput.CompletionCandidate, expected string) bool {
+	for _, c := range completions {
+		if c.Value+c.Suffix == expected {
+			return true
+		}
+	}
+	return false
+}
 
 func TestGetFileCompletions_Integration(t *testing.T) {
 	// Create a temporary directory with test files and directories
@@ -176,13 +187,13 @@ func TestGetFileCompletions_Integration(t *testing.T) {
 				tt.expectedMin, tt.prefix, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
+				assert.True(t, containsCompletion(completions, expected),
 					"Expected completions to contain %q for prefix %q, got: %v",
 					expected, tt.prefix, completions)
 			}
 
 			for _, notExpected := range tt.shouldNotContain {
-				assert.NotContains(t, completions, notExpected,
+				assert.False(t, containsCompletion(completions, notExpected),
 					"Expected completions to NOT contain %q for prefix %q, got: %v",
 					notExpected, tt.prefix, completions)
 			}
@@ -271,13 +282,13 @@ func TestGetFileCompletions_RelativePaths_Integration(t *testing.T) {
 				tt.expectedMin, tt.prefix, tt.workingDir, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
+				assert.True(t, containsCompletion(completions, expected),
 					"Expected completions to contain %q for prefix %q from dir %q, got: %v",
 					expected, tt.prefix, tt.workingDir, completions)
 			}
 
 			for _, notExpected := range tt.shouldNotContain {
-				assert.NotContains(t, completions, notExpected,
+				assert.False(t, containsCompletion(completions, notExpected),
 					"Expected completions to NOT contain %q for prefix %q from dir %q, got: %v",
 					notExpected, tt.prefix, tt.workingDir, completions)
 			}
@@ -370,7 +381,7 @@ func TestGetFileCompletions_EdgeCases_Integration(t *testing.T) {
 				tt.expectedMin, tt.prefix, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
+				assert.True(t, containsCompletion(completions, expected),
 					"Expected completions to contain %q for prefix %q, got: %v",
 					expected, tt.prefix, completions)
 			}
@@ -458,7 +469,7 @@ func TestGetFileCompletions_Permissions_Integration(t *testing.T) {
 				tt.expectedMin, tt.prefix, len(completions), completions)
 
 			for _, expected := range tt.shouldContain {
-				assert.Contains(t, completions, expected,
+				assert.True(t, containsCompletion(completions, expected),
 					"Expected completions to contain %q for prefix %q, got: %v",
 					expected, tt.prefix, completions)
 			}

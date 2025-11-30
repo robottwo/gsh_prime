@@ -143,7 +143,7 @@ func TestShellCompletionProvider_FileCompletion_Integration(t *testing.T) {
 			for _, expected := range tt.shouldContain {
 				found := false
 				for _, c := range completions {
-					if c.Value == expected {
+					if c.Value+c.Suffix == expected {
 						found = true
 						break
 					}

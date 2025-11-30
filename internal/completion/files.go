@@ -4,29 +4,35 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/atinylittleshell/gsh/pkg/shellinput"
 )
 
 // fileCompleter is the function type for file completion
-type fileCompleter func(prefix string, currentDirectory string) []string
+type fileCompleter func(prefix string, currentDirectory string) []shellinput.CompletionCandidate
 
 // commandCompleter is the function type for command completion
 
 // getFileCompletions is the default implementation of file completion
-var getFileCompletions fileCompleter = func(prefix string, currentDirectory string) []string {
+var getFileCompletions fileCompleter = func(prefix string, currentDirectory string) []shellinput.CompletionCandidate {
 	if prefix == "" {
 		// If prefix is empty, use current directory
 		entries, err := os.ReadDir(currentDirectory)
 		if err != nil {
-			return []string{}
+			return []shellinput.CompletionCandidate{}
 		}
 
-		matches := make([]string, 0, len(entries))
+		matches := make([]shellinput.CompletionCandidate, 0, len(entries))
 		for _, entry := range entries {
 			name := entry.Name()
-			if entry.IsDir() {
-				name += string(os.PathSeparator)
+			candidate := shellinput.CompletionCandidate{
+				Value: name,
 			}
-			matches = append(matches, name)
+			// Add trailing slash as suffix for directories
+			if entry.IsDir() {
+				candidate.Suffix = string(os.PathSeparator)
+			}
+			matches = append(matches, candidate)
 		}
 		return matches
 	}
@@ -44,7 +50,7 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		var err error
 		homeDir, err = os.UserHomeDir()
 		if err != nil {
-			return []string{}
+			return []shellinput.CompletionCandidate{}
 		}
 		// Replace "~" with actual home directory for searching
 		searchPath := filepath.Join(homeDir, prefix[1:])
@@ -95,11 +101,11 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 	// Read directory contents
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return []string{}
+		return []shellinput.CompletionCandidate{}
 	}
 
 	// Filter and format matches
-	matches := make([]string, 0, len(entries))
+	matches := make([]shellinput.CompletionCandidate, 0, len(entries))
 	for _, entry := range entries {
 		name := entry.Name()
 		if !strings.HasPrefix(name, filePrefix) {
@@ -133,12 +139,17 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 			}
 		}
 
-		// Add trailing slash for directories
-		if entry.IsDir() {
-			completionPath += string(os.PathSeparator)
+		// Create completion candidate
+		candidate := shellinput.CompletionCandidate{
+			Value: completionPath,
 		}
 
-		matches = append(matches, completionPath)
+		// Add trailing slash as suffix for directories (not in Value)
+		if entry.IsDir() {
+			candidate.Suffix = string(os.PathSeparator)
+		}
+
+		matches = append(matches, candidate)
 	}
 
 	return matches

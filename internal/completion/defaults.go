@@ -53,11 +53,10 @@ func (d *DefaultCompleter) completeDirectories(args []string) []shellinput.Compl
 
 	var dirs []shellinput.CompletionCandidate
 	for _, c := range candidates {
-		if strings.HasSuffix(c, "/") {
-			dirs = append(dirs, shellinput.CompletionCandidate{
-				Value:       c,
-				Description: "Directory",
-			})
+		// Check if it's a directory by looking at the Suffix field
+		if c.Suffix == string(os.PathSeparator) {
+			c.Description = "Directory"
+			dirs = append(dirs, c)
 		}
 	}
 	return dirs

@@ -790,6 +790,7 @@ func (m Model) View() string {
 			m.Cursor.SetChar(" ")
 			v += m.Cursor.View()
 		}
+		v += m.completionSuffixView() // suffix from active completion (e.g., "/" for directories)
 	}
 
 	totalWidth := uniseg.StringWidth(v)
@@ -886,6 +887,25 @@ func (m Model) completionView(offset int) string {
 			return style(string(suggestion[len(value)+offset:]))
 		}
 	}
+	return ""
+}
+
+// completionSuffixView renders the suffix from the currently selected completion candidate
+// as a greyed-out inline suggestion (e.g., "/" for directories)
+func (m Model) completionSuffixView() string {
+	// Only show suffix if completion is active and a suggestion is selected
+	if !m.completion.active || m.completion.selected < 0 || m.completion.selected >= len(m.completion.suggestions) {
+		return ""
+	}
+
+	// Get the currently selected completion candidate
+	candidate := m.completion.suggestions[m.completion.selected]
+
+	// If there's a suffix, render it with the completion style (greyed out)
+	if candidate.Suffix != "" {
+		return m.CompletionStyle.Inline(true).Render(candidate.Suffix)
+	}
+
 	return ""
 }
 
