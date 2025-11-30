@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/syntax"
 )
@@ -468,10 +468,10 @@ func TestProcessMenuSelectionWithFileOperations(t *testing.T) {
 	// Override the environment variables for testing
 	environment.SetConfigDirForTesting(tempConfigDir)
 	environment.SetAuthorizedCommandsFileForTesting(tempAuthorizedFile)
-	defer func() {
-		os.RemoveAll(tempConfigDir)
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(tempConfigDir))
 		environment.ResetCacheForTesting()
-	}()
+	})
 
 	atoms := []PermissionAtom{
 		{Command: "ls", Enabled: true, IsNew: true},
@@ -657,10 +657,10 @@ func TestShowPermissionsMenuIntegration(t *testing.T) {
 	// Override the environment variables for testing
 	environment.SetConfigDirForTesting(tempConfigDir)
 	environment.SetAuthorizedCommandsFileForTesting(tempAuthorizedFile)
-	defer func() {
-		os.RemoveAll(tempConfigDir)
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(tempConfigDir))
 		environment.ResetCacheForTesting()
-	}()
+	})
 
 	// Pre-populate with some authorized commands
 	err := os.MkdirAll(tempConfigDir, 0700)
@@ -746,7 +746,7 @@ func TestSimplePermissionsModelSpecialKeys(t *testing.T) {
 	model.result = ""
 	newModel, cmd = model.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	assert.Equal(t, model, newModel)
-	assert.NotNil(t, cmd) // Should be tea.Quit
+	assert.NotNil(t, cmd)              // Should be tea.Quit
 	assert.Equal(t, "y", model.result) // No enabled permissions
 
 	// Test arrow keys

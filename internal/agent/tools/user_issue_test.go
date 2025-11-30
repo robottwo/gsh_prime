@@ -18,7 +18,9 @@ func TestUserReportedIssue(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "gsh_user_issue_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	})
 
 	// Set up the authorized commands file path
 	authorizedFile := filepath.Join(tempDir, "authorized_commands")
@@ -97,7 +99,9 @@ func TestUserReportedIssueWithEnvironmentVariable(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "gsh_user_issue_env_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	})
 
 	// Set up the authorized commands file path
 	authorizedFile := filepath.Join(tempDir, "authorized_commands")
@@ -161,7 +165,9 @@ func TestEnvironmentVariablePatternFiltering(t *testing.T) {
 	// Create a temporary directory for testing
 	tempDir, err := os.MkdirTemp("", "gsh_env_filter_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	t.Cleanup(func() {
+		assert.NoError(t, os.RemoveAll(tempDir))
+	})
 
 	// Set up the authorized commands file path
 	authorizedFile := filepath.Join(tempDir, "authorized_commands")

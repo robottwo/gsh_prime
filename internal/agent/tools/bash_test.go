@@ -225,10 +225,10 @@ func TestBashToolWithPreApprovedCommand(t *testing.T) {
 	// Override the global variables for testing
 	environment.SetConfigDirForTesting(tempConfigDir)
 	environment.SetAuthorizedCommandsFileForTesting(tempAuthorizedFile)
-	defer func() {
-		os.RemoveAll(tempConfigDir)
+	t.Cleanup(func() {
+		require.NoError(t, os.RemoveAll(tempConfigDir))
 		environment.ResetCacheForTesting()
-	}()
+	})
 
 	// Create authorized command
 	err := os.MkdirAll(tempConfigDir, 0700)
@@ -246,7 +246,9 @@ func TestBashToolWithPreApprovedCommand(t *testing.T) {
 	// Create temporary database for testing
 	tempDB, err := os.CreateTemp("", "test_history.db")
 	require.NoError(t, err)
-	defer os.Remove(tempDB.Name())
+	t.Cleanup(func() {
+		require.NoError(t, os.Remove(tempDB.Name()))
+	})
 
 	historyManager, err := history.NewHistoryManager(tempDB.Name())
 	require.NoError(t, err)
@@ -259,19 +261,20 @@ func TestBashToolWithPreApprovedCommand(t *testing.T) {
 
 	// Capture stdout to verify command execution
 	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
+	r, w, err := os.Pipe()
+	require.NoError(t, err)
 	os.Stdout = w
 
 	result := BashTool(runner, historyManager, logger, params)
 
 	// Restore stdout
-	w.Close()
+	require.NoError(t, w.Close())
 	os.Stdout = oldStdout
 
 	// Read captured output
 	outBuf := &bytes.Buffer{}
 	_, _ = outBuf.ReadFrom(r)
-	r.Close()
+	require.NoError(t, r.Close())
 
 	// Verify successful execution
 	var response map[string]any

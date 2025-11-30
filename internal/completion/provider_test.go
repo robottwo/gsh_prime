@@ -116,11 +116,7 @@ func TestGetCompletions(t *testing.T) {
 	}()
 
 	// Set up environment for macro testing
-	origMacrosEnv := os.Getenv("GSH_AGENT_MACROS")
-	os.Setenv("GSH_AGENT_MACROS", `{"macro1": {}, "macro2": {}, "macro3": {}}`)
-	defer func() {
-		os.Setenv("GSH_AGENT_MACROS", origMacrosEnv)
-	}()
+	t.Setenv("GSH_AGENT_MACROS", `{"macro1": {}, "macro2": {}, "macro3": {}}`)
 
 	// Create a proper runner with the macros variable
 	runner, _ := interp.New(interp.StdIO(nil, nil, nil))
@@ -560,8 +556,7 @@ func TestGetHelpInfo(t *testing.T) {
 
 func TestGetHelpInfoWithMacros(t *testing.T) {
 	// Set up test macros using environment variable since runner is nil in provider
-	os.Setenv("GSH_AGENT_MACROS", `{"test": "This is a test macro", "help": "Show help information"}`)
-	defer os.Unsetenv("GSH_AGENT_MACROS")
+	t.Setenv("GSH_AGENT_MACROS", `{"test": "This is a test macro", "help": "Show help information"}`)
 
 	// Use nil runner to force fallback to environment variable
 	manager := NewCompletionManager()
