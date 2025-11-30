@@ -397,7 +397,7 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 			// if the model was dirty earlier, but now the user has cleared the input,
 			// we should clear the prediction
 			m.clearPrediction()
-		} else if len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) {
+		} else if len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) && !suggestionsCleared {
 			// if the prediction already starts with the user input, we don't need to predict again
 			m.logger.Debug("gline existing predicted input already starts with user input", zap.String("userInput", userInput))
 		} else {
