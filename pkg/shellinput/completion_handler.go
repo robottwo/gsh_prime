@@ -235,11 +235,11 @@ func (m *Model) updateHelpInfo() {
 		// For help purposes, we want to get help for the selected suggestion
 		// We'll use the length of the suggestion as the position to ensure we get the full command
 		helpInfo = m.CompletionProvider.GetHelpInfo(selectedSuggestion, len(selectedSuggestion))
-	}
-
-	// Always check for help info based on current input, even if no completion is active
-	// This allows help to be shown for special commands like @!, @/, and @ prefixes
-	if helpInfo == "" {
+	} else if len(m.matchedSuggestions) > 0 && m.currentSuggestionIndex < len(m.matchedSuggestions) {
+		selectedSuggestion := string(m.matchedSuggestions[m.currentSuggestionIndex])
+		helpInfo = m.CompletionProvider.GetHelpInfo(selectedSuggestion, len(selectedSuggestion))
+	} else {
+		// Normal case: use current input
 		helpInfo = m.CompletionProvider.GetHelpInfo(m.Value(), m.Position())
 	}
 
