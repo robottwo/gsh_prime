@@ -764,17 +764,50 @@ func (m Model) View() string {
 	}
 
 	styleText := m.TextStyle.Inline(true).Render
-
 	value := m.values[m.selectedValueIndex]
 	pos := max(0, m.pos)
-	v := m.PromptStyle.Render(m.Prompt) + styleText(m.echoTransform(string(value[:pos])))
+
+	// Build the view string
+	var v string
+	v += m.PromptStyle.Render(m.Prompt)
+
+	if m.EchoMode == EchoNormal {
+		// Apply syntax highlighting
+		highlighted := Highlight(value)
+
+		// Render text before cursor
+		if pos > 0 {
+			v += strings.Join(highlighted[:pos], "")
+		}
+	} else {
+		// Use echo transform (e.g. for password)
+		v += styleText(m.echoTransform(string(value[:pos])))
+	}
 
 	if pos < len(value) { //nolint:nestif
 		char := m.echoTransform(string(value[pos]))
+
+		// If syntax highlighting is active, we need to respect the color of the character
+		// under the cursor, but also show the cursor itself.
+		// The simplest way is to let the cursor render the character, but we can't easily pass styles to it dynamically per frame
+		// unless we modify the cursor model on the fly.
+		// For now, we'll let the cursor render normally. If we want the character under cursor to be colored,
+		// we'd need to set m.Cursor.TextStyle dynamically.
+
+		// Note: The cursor view usually applies a background color. If we pass an ANSI colored string to SetChar,
+		// it might conflict or reset the background.
+
 		m.Cursor.SetChar(char)
-		v += m.Cursor.View()                                   // cursor and text under it
-		v += styleText(m.echoTransform(string(value[pos+1:]))) // text after cursor
-		v += m.completionView(0)                               // suggested completion
+		v += m.Cursor.View() // cursor and text under it
+
+		if m.EchoMode == EchoNormal {
+			highlighted := Highlight(value)
+			v += strings.Join(highlighted[pos+1:], "")
+		} else {
+			v += styleText(m.echoTransform(string(value[pos+1:])))
+		}
+
+		v += m.completionView(0) // suggested completion
 	} else {
 		if m.canAcceptSuggestion() {
 			suggestion := m.matchedSuggestions[m.currentSuggestionIndex]
@@ -794,7 +827,7 @@ func (m Model) View() string {
 		v += m.completionSuffixView() // suffix from active completion (e.g., "/" for directories)
 	}
 
-	totalWidth := uniseg.StringWidth(v)
+	totalWidth := ansi.PrintableRuneWidth(v)
 
 	// If a max width is set, we need to respect the horizontal boundary
 	if m.Width > 0 {
