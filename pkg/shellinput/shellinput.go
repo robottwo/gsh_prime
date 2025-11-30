@@ -336,6 +336,9 @@ func (m *Model) Reset() {
 
 // SetSuggestions sets the suggestions for the input.
 func (m *Model) SetSuggestions(suggestions []string) {
+	if len(suggestions) > 0 {
+		m.suppressSuggestionsUntilInput = false
+	}
 	m.suggestions = make([][]rune, len(suggestions))
 	for i, s := range suggestions {
 		m.suggestions[i] = []rune(s)
