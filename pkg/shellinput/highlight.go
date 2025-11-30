@@ -40,8 +40,7 @@ func Highlight(input []rune) []string {
 		ansiStyle := styleEntryToLipgloss(styleEntry)
 
 		// Apply style to each rune in the token
-		tokenRunes := []rune(token.Value)
-		for _, r := range tokenRunes {
+		for _, r := range token.Value {
 			result = append(result, ansiStyle.Render(string(r)))
 		}
 	}
