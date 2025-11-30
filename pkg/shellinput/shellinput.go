@@ -337,9 +337,7 @@ func (m *Model) Reset() {
 
 // SetSuggestions sets the suggestions for the input.
 func (m *Model) SetSuggestions(suggestions []string) {
-	if len(suggestions) > 0 {
-		m.suppressSuggestionsUntilInput = false
-	}
+
 	m.suggestions = make([][]rune, len(suggestions))
 	for i, s := range suggestions {
 		m.suggestions[i] = []rune(s)
@@ -776,6 +774,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		killCommand := key.Matches(msg, m.KeyMap.DeleteBeforeCursor) || key.Matches(msg, m.KeyMap.DeleteAfterCursor) ||
 			key.Matches(msg, m.KeyMap.DeleteWordBackward) || key.Matches(msg, m.KeyMap.DeleteWordForward)
 		yankCommand := key.Matches(msg, m.KeyMap.Yank) || key.Matches(msg, m.KeyMap.YankPop)
+
+		if m.suppressSuggestionsUntilInput && !killCommand {
+			m.suppressSuggestionsUntilInput = false
+		}
 
 		switch {
 		case key.Matches(msg, m.KeyMap.ReverseSearch):
@@ -1235,6 +1237,13 @@ func (m *Model) AvailableSuggestions() []string {
 // MatchedSuggestions returns the list of matched suggestions.
 func (m *Model) MatchedSuggestions() []string {
 	return m.getSuggestions(m.matchedSuggestions)
+}
+
+// SuggestionsSuppressedUntilInput reports whether autocomplete hints are
+// temporarily disabled until the user provides additional input (for example
+// after a kill command like Ctrl+K).
+func (m Model) SuggestionsSuppressedUntilInput() bool {
+	return m.suppressSuggestionsUntilInput
 }
 
 // CurrentSuggestion returns the currently selected suggestion index.

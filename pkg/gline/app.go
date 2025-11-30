@@ -424,6 +424,11 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 			m.dirty = true
 		}
 
+		if updatedTextInput.SuggestionsSuppressedUntilInput() {
+			m.clearPrediction()
+			return m, cmd
+		}
+
 		if len(userInput) == 0 && m.dirty {
 			// if the model was dirty earlier, but now the user has cleared the input,
 			// we should clear the prediction
@@ -448,7 +453,7 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 		// for the remaining buffer so the assistant can refresh its help content.
 		m.clearPrediction()
 
-		if m.predictor != nil {
+		if m.predictor != nil && !m.textInput.SuggestionsSuppressedUntilInput() {
 			m.predictionStateId++
 			if len(m.textInput.Value()) > 0 {
 				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
