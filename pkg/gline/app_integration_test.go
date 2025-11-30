@@ -20,24 +20,24 @@ type mockPredictor struct {
 
 func newMockPredictor() *mockPredictor {
 	return &mockPredictor{
-                predictions: map[string]string{
-                        "git":    "git status",
-                        "git ":   "git status",
-                        "docker": "docker ps",
-                        "ls":     "ls -la",
-                        "ls ":    "ls -la",
-                        "cd":     "cd ~/",
-                        "vim":    "vim .",
-                },
-                contexts: map[string]string{
-                        "git":    "git command context",
-                        "git ":   "git command context",
-                        "docker": "docker command context",
-                        "ls":     "list files context",
-                        "ls ":    "list files context",
-                        "cd":     "change directory context",
-                        "vim":    "vim editor context",
-                },
+		predictions: map[string]string{
+			"git":    "git status",
+			"git ":   "git status",
+			"docker": "docker ps",
+			"ls":     "ls -la",
+			"ls ":    "ls -la",
+			"cd":     "cd ~/",
+			"vim":    "vim .",
+		},
+		contexts: map[string]string{
+			"git":    "git command context",
+			"git ":   "git command context",
+			"docker": "docker command context",
+			"ls":     "list files context",
+			"ls ":    "list files context",
+			"cd":     "change directory context",
+			"vim":    "vim editor context",
+		},
 		delay: 0, // No delay by default for faster tests
 	}
 }
@@ -335,15 +335,43 @@ func TestCtrlKRefreshesPredictionWhenTextUnchanged(t *testing.T) {
 	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
 	assert.NotEmpty(t, model.textInput.MatchedSuggestions(), "Prediction-backed suggestions should be visible before trimming")
 
-	updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	updatedModel, cmd := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
 	model = updatedModel.(appModel)
 
 	require.Equal(t, "git", model.textInput.Value(), "Ctrl+K should leave the buffer unchanged when there's no text after the cursor")
 	assert.Empty(t, model.textInput.MatchedSuggestions(), "Matched suggestions should clear when trimming autocompletion text")
 
 	assert.True(t, model.textInput.SuggestionsSuppressedUntilInput(), "Suggestions should be suppressed after trimming ghost text")
-	assert.Empty(t, model.prediction, "Prediction should clear when suggestions are suppressed")
-	assert.Empty(t, model.explanation, "Explanation should clear when suggestions are suppressed")
+
+	if cmd != nil {
+		if attemptMsg, ok := cmd().(attemptPredictionMsg); ok {
+			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
+			model = predictionModel.(appModel)
+
+			if predictionCmd != nil {
+				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
+					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+
+					if predictionCmd != nil {
+						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
+							explanationModel, ecmd := model.attemptExplanation(attemptExplMsg)
+							model = explanationModel.(appModel)
+
+							if ecmd != nil {
+								if explMsg, ok := ecmd().(setExplanationMsg); ok {
+									explanationModel, _ = model.setExplanation(explMsg)
+									model = explanationModel.(appModel)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	assert.NotEmpty(t, model.explanation, "Assistant help should refresh even while suggestions are suppressed")
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Suggestions should stay hidden until the user types again")
 
 	// Resume predictions after the user provides more input
 	updatedModel, predictionCmd := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{' '}})
@@ -410,19 +438,34 @@ func TestCtrlKRestoresSuggestionsWithoutNewInput(t *testing.T) {
 	assert.True(t, model.textInput.SuggestionsSuppressedUntilInput(), "Suggestions should remain suppressed after Ctrl+K until new input")
 
 	if cmd != nil {
-		// Prediction attempts should not repopulate suggestions while suppression is active
+		// Prediction attempts should refresh help text without re-enabling suggestions while suppression is active
 		if attemptMsg, ok := cmd().(attemptPredictionMsg); ok {
 			predictionModel, predictionCmd := model.attemptPrediction(attemptMsg)
 			model = predictionModel.(appModel)
 
 			if predictionCmd != nil {
-				// Execute returned command to prove it no-ops during suppression
-				predictionCmd()
+				if predMsg, ok := predictionCmd().(setPredictionMsg); ok {
+					model, predictionCmd = model.setPrediction(predMsg.stateId, predMsg.prediction, predMsg.inputContext)
+
+					if predictionCmd != nil {
+						if attemptExplMsg, ok := predictionCmd().(attemptExplanationMsg); ok {
+							explanationModel, ecmd := model.attemptExplanation(attemptExplMsg)
+							model = explanationModel.(appModel)
+
+							if ecmd != nil {
+								if explMsg, ok := ecmd().(setExplanationMsg); ok {
+									explanationModel, _ = model.setExplanation(explMsg)
+									model = explanationModel.(appModel)
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
 
-	assert.Empty(t, model.prediction, "Prediction should stay cleared after Ctrl+K until the user types again")
+	assert.NotEmpty(t, model.explanation, "Assistant help should refresh even while suggestions are suppressed")
 	assert.Empty(t, model.textInput.MatchedSuggestions(), "Suppressed suggestions should stay hidden until more input arrives")
 
 	// Once the user types again, suggestions and help should repopulate

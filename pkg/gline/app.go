@@ -424,19 +424,29 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 			m.dirty = true
 		}
 
-		if updatedTextInput.SuggestionsSuppressedUntilInput() {
-			m.clearPrediction()
-			return m, cmd
-		}
+		suppressionActive := updatedTextInput.SuggestionsSuppressedUntilInput()
 
-		if len(userInput) == 0 && m.dirty {
+		switch {
+		case len(userInput) == 0 && m.dirty:
 			// if the model was dirty earlier, but now the user has cleared the input,
 			// we should clear the prediction
 			m.clearPrediction()
-		} else if len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) && !suggestionsCleared {
+		case suppressionActive:
+			// When suppression is active (e.g., after Ctrl+K), clear stale predictions but
+			// still recompute assistant help for the remaining buffer while keeping
+			// autocomplete hints hidden until new input arrives.
+			m.clearPrediction()
+			if len(userInput) > 0 {
+				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+					return attemptPredictionMsg{
+						stateId: m.predictionStateId,
+					}
+				}))
+			}
+		case len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) && !suggestionsCleared:
 			// if the prediction already starts with the user input, we don't need to predict again
 			m.logger.Debug("gline existing predicted input already starts with user input", zap.String("userInput", userInput))
-		} else {
+		default:
 			// in other cases, we should kick off a debounced prediction after clearing the current one
 			m.clearPrediction()
 
@@ -453,7 +463,7 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 		// for the remaining buffer so the assistant can refresh its help content.
 		m.clearPrediction()
 
-		if m.predictor != nil && !m.textInput.SuggestionsSuppressedUntilInput() {
+		if m.predictor != nil {
 			m.predictionStateId++
 			if len(m.textInput.Value()) > 0 {
 				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
