@@ -373,10 +373,13 @@ func (m appModel) getFinalOutput() string {
 
 func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 	oldVal := m.textInput.Value()
+	oldMatchedSuggestions := m.textInput.MatchedSuggestions()
 	updatedTextInput, cmd := m.textInput.Update(msg)
 	newVal := updatedTextInput.Value()
+	newMatchedSuggestions := updatedTextInput.MatchedSuggestions()
 
 	textUpdated := oldVal != newVal
+	suggestionsCleared := len(oldMatchedSuggestions) > 0 && len(newMatchedSuggestions) == 0
 	m.textInput = updatedTextInput
 
 	// if the text input has changed, we want to attempt a prediction
@@ -407,6 +410,11 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 				}
 			}))
 		}
+	} else if suggestionsCleared {
+		// User trimmed away ghost suggestions (e.g., via Ctrl+K) without changing
+		// the underlying input. Clear any pending prediction and explanation so the
+		// assistant box reflects the truncated command.
+		m.clearPrediction()
 	}
 
 	return m, cmd

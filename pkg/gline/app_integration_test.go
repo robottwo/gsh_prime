@@ -244,6 +244,37 @@ func TestApp_PredictionFlow_Integration(t *testing.T) {
 	}
 }
 
+func TestCtrlKClearsPredictionAndExplanation(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+	predictor := newMockPredictor()
+	explainer := newMockExplainer()
+	options := NewOptions()
+
+	model := initialModel(
+		"test> ",
+		[]string{},
+		"",
+		predictor,
+		explainer,
+		nil,
+		logger,
+		options,
+	)
+
+	model.textInput.SetValue("git")
+	model.textInput.SetCursor(len("git"))
+
+	model, _ = model.setPrediction(model.predictionStateId, "git status", "git")
+	assert.NotEmpty(t, model.textInput.MatchedSuggestions())
+
+	updatedModel, _ := model.Update(tea.KeyMsg{Type: tea.KeyCtrlK})
+	model = updatedModel.(appModel)
+
+	assert.Empty(t, model.textInput.MatchedSuggestions(), "Ctrl+K should clear prediction-backed suggestions")
+	assert.Empty(t, model.prediction, "Ctrl+K should clear the active prediction")
+	assert.Empty(t, model.explanation, "Ctrl+K should clear any pending explanation when trimming predictions")
+}
+
 func TestApp_KeyHandling_Integration(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	predictor := newMockPredictor()
