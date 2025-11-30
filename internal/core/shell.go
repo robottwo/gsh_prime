@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"time"
 
@@ -32,7 +33,9 @@ func RunInteractiveShell(
 	analyticsManager *analytics.AnalyticsManager,
 	completionManager *completion.CompletionManager,
 	logger *zap.Logger,
+	stderrCapturer *StderrCapturer,
 ) error {
+	state := &ShellState{}
 	contextProvider := &rag.ContextProvider{
 		Logger: logger,
 		Retrievers: []rag.ContextRetriever{
@@ -132,6 +135,62 @@ func RunInteractiveShell(
 				}
 			}
 
+			// Handle magic fix
+			if chatMessage == "?" {
+				if state.LastExitCode == 0 {
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Last command succeeded.\n") + gline.RESET_CURSOR_COLUMN)
+					continue
+				}
+
+				prompt := fmt.Sprintf("The command `%s` failed with exit code %d.\nThe stderr output was:\n%s\n\nExplain why it failed and suggest a fix. Do not execute the fix yet. Provide the fixed command in a markdown code block.", state.LastCommand, state.LastExitCode, state.LastStderr)
+
+				chatChannel, err := agent.Chat(prompt)
+				if err != nil {
+					logger.Error("error chatting with agent", zap.Error(err))
+					continue
+				}
+
+				var fullResponse strings.Builder
+				for message := range chatChannel {
+					fullResponse.WriteString(message)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
+				}
+
+				// Extract code block
+				responseStr := fullResponse.String()
+				codeBlockRegex := regexp.MustCompile("(?s)```(?:bash|sh|zsh)?\\s+(.*?)\\s+```")
+				matches := codeBlockRegex.FindAllStringSubmatch(responseStr, -1)
+
+				var fixedCmd string
+				if len(matches) > 0 {
+					fixedCmd = strings.TrimSpace(matches[len(matches)-1][1])
+				}
+
+				if fixedCmd != "" {
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("\nRun this fix? [Y/n] ")) + gline.RESET_CURSOR_COLUMN)
+
+					var confirm string
+					_, _ = fmt.Scanln(&confirm)
+					confirm = strings.ToLower(strings.TrimSpace(confirm))
+
+					if confirm == "y" || confirm == "yes" || confirm == "" {
+						fmt.Println()
+						shouldExit, err := executeCommand(ctx, fixedCmd, historyManager, runner, logger, state, stderrCapturer)
+						if err != nil {
+							fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
+						}
+						// Sync any gsh variables that might have been changed during command execution
+						environment.SyncVariablesToEnv(runner)
+
+						if shouldExit {
+							logger.Debug("exiting...")
+							break
+						}
+					}
+				}
+				continue
+			}
+
 			// Handle macros
 			if strings.HasPrefix(chatMessage, "/") {
 				macroName := strings.TrimSpace(strings.TrimPrefix(chatMessage, "/"))
@@ -185,7 +244,7 @@ func RunInteractiveShell(
 		}
 
 		// Execute the command
-		shouldExit, err := executeCommand(ctx, line, historyManager, runner, logger)
+		shouldExit, err := executeCommand(ctx, line, historyManager, runner, logger, state, stderrCapturer)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error executing command: %v\n", err)
 		}
@@ -202,7 +261,7 @@ func RunInteractiveShell(
 	return nil
 }
 
-func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, runner *interp.Runner, logger *zap.Logger) (bool, error) {
+func executeCommand(ctx context.Context, input string, historyManager *history.HistoryManager, runner *interp.Runner, logger *zap.Logger, state *ShellState, stderrCapturer *StderrCapturer) (bool, error) {
 	// Pre-process input to transform typeset/declare -f/-F/-p commands to gsh_typeset
 	logger.Debug("preprocessing input", zap.String("original_input", input), zap.Int("input_length", len(input)))
 
@@ -250,9 +309,19 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 
 	historyEntry, _ := historyManager.StartCommand(input, environment.GetPwd(runner))
 
+	state.LastCommand = input
+	if stderrCapturer != nil {
+		stderrCapturer.StartCapture()
+	}
+
 	startTime := time.Now()
 	err = runner.Run(ctx, prog)
 	exited := runner.Exited()
+
+	if stderrCapturer != nil {
+		state.LastStderr = stderrCapturer.StopCapture()
+	}
+
 	endTime := time.Now()
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
@@ -269,6 +338,8 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	} else {
 		exitCode = 0
 	}
+
+	state.LastExitCode = exitCode
 
 	_, _ = historyManager.FinishCommand(historyEntry, exitCode)
 	_, _, _ = bash.RunBashCommand(ctx, runner, fmt.Sprintf("GSH_LAST_COMMAND_EXIT_CODE=%d", exitCode))
