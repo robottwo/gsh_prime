@@ -15,11 +15,23 @@ import (
 	"mvdan.cc/sh/v3/interp"
 )
 
+// homeDir returns the user's home directory, using os.UserHomeDir() for portability
+// across different platforms (including Windows where HOME is not typically set).
+func homeDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		// Fall back to HOME env var if os.UserHomeDir() fails
+		return os.Getenv("HOME")
+	}
+	return home
+}
+
 var (
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
 	// Full-screen box styles (matching ctrl-r history search)
 	headerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Bold(true)
 	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
+	errorStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("196")) // Red for errors
 )
 
 // sessionConfigOverrides stores config values set via the UI that should override shell variables
@@ -45,6 +57,7 @@ type model struct {
 	quitting       bool
 	width          int
 	height         int
+	errorMsg       string // Temporary error message to display
 }
 
 type state int
@@ -99,8 +112,15 @@ func initialModel(runner *interp.Runner) model {
 	// Define submenu items for slow model (chat/agent)
 	slowModelSettings := []settingItem{
 		{
+			title:       "Provider",
+			description: "LLM provider to use",
+			envVar:      "GSH_SLOW_MODEL_PROVIDER",
+			itemType:    typeList,
+			options:     []string{"ollama", "openai", "openrouter"},
+		},
+		{
 			title:       "API Key",
-			description: "API key (or 'ollama' for local Ollama)",
+			description: "API key for the provider",
 			envVar:      "GSH_SLOW_MODEL_API_KEY",
 			itemType:    typeText,
 		},
@@ -112,7 +132,7 @@ func initialModel(runner *interp.Runner) model {
 		},
 		{
 			title:       "Base URL",
-			description: "API endpoint URL",
+			description: "API endpoint URL (optional override)",
 			envVar:      "GSH_SLOW_MODEL_BASE_URL",
 			itemType:    typeText,
 		},
@@ -121,8 +141,15 @@ func initialModel(runner *interp.Runner) model {
 	// Define submenu items for fast model (completion/suggestions)
 	fastModelSettings := []settingItem{
 		{
+			title:       "Provider",
+			description: "LLM provider to use",
+			envVar:      "GSH_FAST_MODEL_PROVIDER",
+			itemType:    typeList,
+			options:     []string{"ollama", "openai", "openrouter"},
+		},
+		{
 			title:       "API Key",
-			description: "API key (or 'ollama' for local Ollama)",
+			description: "API key for the provider",
 			envVar:      "GSH_FAST_MODEL_API_KEY",
 			itemType:    typeText,
 		},
@@ -134,7 +161,7 @@ func initialModel(runner *interp.Runner) model {
 		},
 		{
 			title:       "Base URL",
-			description: "API endpoint URL",
+			description: "API endpoint URL (optional override)",
 			envVar:      "GSH_FAST_MODEL_BASE_URL",
 			itemType:    typeText,
 		},
@@ -235,8 +262,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.selectionList.SetHeight(msg.Height)
 
 	case tea.KeyMsg:
+		// Clear any previous error message on new key press
+		m.errorMsg = ""
+
 		// Handle text editing state
 		if m.state == stateEditing {
+			// Check for quit keys first, before delegating to text input
+			switch msg.String() {
+			case "ctrl+c", "q":
+				m.quitting = true
+				return m, tea.Quit
+			}
 			switch msg.Type {
 			case tea.KeyEsc:
 				if m.activeSubmenu != nil {
@@ -247,7 +283,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			case tea.KeyEnter:
 				newValue := m.textInput.Value()
-				_ = saveConfig(m.activeSetting.envVar, newValue, m.runner)
+				if err := saveConfig(m.activeSetting.envVar, newValue, m.runner); err != nil {
+					m.errorMsg = fmt.Sprintf("Failed to save %s: %v", m.activeSetting.envVar, err)
+					return m, nil
+				}
 				if m.activeSubmenu != nil {
 					m.state = stateSubmenu
 				} else {
@@ -261,6 +300,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Handle selection list state
 		if m.state == stateSelection {
+			// Check for quit keys first, before delegating to selection list
+			switch msg.String() {
+			case "ctrl+c", "q":
+				m.quitting = true
+				return m, tea.Quit
+			}
 			switch msg.Type {
 			case tea.KeyEsc:
 				if m.activeSubmenu != nil {
@@ -272,7 +317,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case tea.KeyEnter:
 				if i, ok := m.selectionList.SelectedItem().(simpleItem); ok {
 					newValue := string(i)
-					_ = saveConfig(m.activeSetting.envVar, newValue, m.runner)
+					if err := saveConfig(m.activeSetting.envVar, newValue, m.runner); err != nil {
+						m.errorMsg = fmt.Sprintf("Failed to save %s: %v", m.activeSetting.envVar, err)
+						return m, nil
+					}
 					if m.activeSubmenu != nil {
 						m.state = stateSubmenu
 					} else {
@@ -359,7 +407,9 @@ func (m *model) handleSettingAction(s *settingItem) tea.Cmd {
 				newVal = "true"
 			}
 		}
-		_ = saveConfig(s.envVar, newVal, m.runner)
+		if err := saveConfig(s.envVar, newVal, m.runner); err != nil {
+			m.errorMsg = fmt.Sprintf("Failed to save %s: %v", s.envVar, err)
+		}
 		return nil
 	}
 
@@ -403,11 +453,11 @@ func (m model) View() string {
 	switch m.state {
 	case stateEditing:
 		title = fmt.Sprintf("Edit %s", m.activeSetting.title)
-		helpText = "Enter: Save | Esc: Cancel"
+		helpText = "Enter: Save | Esc: Cancel | q: Quit"
 		content.WriteString("\n" + m.textInput.View() + "\n")
 	case stateSelection:
 		title = "Select " + m.activeSetting.title
-		helpText = "↑/↓: Navigate | Enter: Select | Esc: Back"
+		helpText = "↑/↓: Navigate | Enter: Select | Esc: Back | q: Quit"
 		content.WriteString(m.selectionList.View())
 	case stateSubmenu:
 		title = m.activeSubmenu.title
@@ -479,8 +529,12 @@ func (m model) View() string {
 		boxContent.WriteString("\n")
 	}
 
-	// Footer with help text
-	boxContent.WriteString("\n" + helpStyle.Render(helpText))
+	// Footer with help text and error message
+	footerContent := helpStyle.Render(helpText)
+	if m.errorMsg != "" {
+		footerContent = errorStyle.Render(m.errorMsg) + "\n" + footerContent
+	}
+	boxContent.WriteString("\n" + footerContent)
 
 	// Render in a box with rounded border (matching ctrl-r style)
 	boxStyle := lipgloss.NewStyle().
@@ -548,7 +602,7 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 	environment.SyncVariableToEnv(runner, key)
 
 	// Persist to file for future sessions
-	configPath := filepath.Join(os.Getenv("HOME"), ".gsh_config_ui")
+	configPath := filepath.Join(homeDir(), ".gsh_config_ui")
 	f, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -567,21 +621,44 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 	}
 
 	// Ensure sourced in .gshrc
-	gshrcPath := filepath.Join(os.Getenv("HOME"), ".gshrc")
+	gshrcPath := filepath.Join(homeDir(), ".gshrc")
+	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.gsh_config_ui ] && source ~/.gsh_config_ui\n"
+
 	content, err := os.ReadFile(gshrcPath)
-	if err == nil {
-		if !strings.Contains(string(content), ".gsh_config_ui") {
-			if f2, err := os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644); err == nil {
-				_, _ = f2.WriteString("\n# Source UI configuration\n[ -f ~/.gsh_config_ui ] && source ~/.gsh_config_ui\n")
-				_ = f2.Close()
-			}
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to read %s: %w", gshrcPath, err)
+	}
+
+	// Check if already contains the source snippet
+	if err == nil && strings.Contains(string(content), ".gsh_config_ui") {
+		return nil // Already configured
+	}
+
+	// Need to add the source snippet - either append to existing or create new
+	var f2 *os.File
+	if os.IsNotExist(err) {
+		f2, err = os.Create(gshrcPath)
+		if err != nil {
+			return fmt.Errorf("failed to create %s: %w", gshrcPath, err)
 		}
-	} else if os.IsNotExist(err) {
-		if f2, err := os.Create(gshrcPath); err == nil {
-			_, _ = f2.WriteString("\n# Source UI configuration\n[ -f ~/.gsh_config_ui ] && source ~/.gsh_config_ui\n")
-			_ = f2.Close()
+	} else {
+		f2, err = os.OpenFile(gshrcPath, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			return fmt.Errorf("failed to open %s for appending: %w", gshrcPath, err)
 		}
 	}
 
-	return nil
+	var writeErr error
+	defer func() {
+		if closeErr := f2.Close(); closeErr != nil && writeErr == nil {
+			writeErr = fmt.Errorf("failed to close %s: %w", gshrcPath, closeErr)
+		}
+	}()
+
+	if _, err := f2.WriteString(sourceSnippet); err != nil {
+		writeErr = fmt.Errorf("failed to write to %s: %w", gshrcPath, err)
+		return writeErr
+	}
+
+	return writeErr
 }
