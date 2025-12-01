@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/atinylittleshell/gsh/internal/environment"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -15,10 +16,21 @@ import (
 )
 
 var (
-	docStyle          = lipgloss.NewStyle().Margin(1, 2)
-	titleStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("#04B575")).Bold(true)
 	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(2).Foreground(lipgloss.Color("170"))
+	// Full-screen box styles (matching ctrl-r history search)
+	headerStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("241")).Bold(true)
+	helpStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("243"))
 )
+
+// sessionConfigOverrides stores config values set via the UI that should override shell variables
+// This prevents user's bash scripts from resetting values we just set
+var sessionConfigOverrides = make(map[string]string)
+
+// GetSessionOverride returns a session config override if one exists
+func GetSessionOverride(key string) (string, bool) {
+	val, ok := sessionConfigOverrides[key]
+	return val, ok
+}
 
 type model struct {
 	runner         *interp.Runner
@@ -87,11 +99,10 @@ func initialModel(runner *interp.Runner) model {
 	// Define submenu items for slow model (chat/agent)
 	slowModelSettings := []settingItem{
 		{
-			title:       "Provider",
-			description: "LLM provider (ollama, openai, openrouter)",
+			title:       "API Key",
+			description: "API key (or 'ollama' for local Ollama)",
 			envVar:      "GSH_SLOW_MODEL_API_KEY",
-			itemType:    typeList,
-			options:     []string{"ollama", "openai", "openrouter"},
+			itemType:    typeText,
 		},
 		{
 			title:       "Model ID",
@@ -110,11 +121,10 @@ func initialModel(runner *interp.Runner) model {
 	// Define submenu items for fast model (completion/suggestions)
 	fastModelSettings := []settingItem{
 		{
-			title:       "Provider",
-			description: "LLM provider (ollama, openai, openrouter)",
+			title:       "API Key",
+			description: "API key (or 'ollama' for local Ollama)",
 			envVar:      "GSH_FAST_MODEL_API_KEY",
-			itemType:    typeList,
-			options:     []string{"ollama", "openai", "openrouter"},
+			itemType:    typeText,
 		},
 		{
 			title:       "Model ID",
@@ -173,20 +183,22 @@ func initialModel(runner *interp.Runner) model {
 	delegate.Styles.SelectedDesc = selectedItemStyle.Foreground(lipgloss.Color("240"))
 
 	l := list.New(items, delegate, 0, 0)
-	l.Title = "GSH Configuration"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(false)
-	l.Styles.Title = titleStyle
+	l.SetShowTitle(false)
+	l.SetShowHelp(false)
 
 	subL := list.New([]list.Item{}, delegate, 0, 0)
 	subL.SetShowStatusBar(false)
 	subL.SetFilteringEnabled(false)
-	subL.Styles.Title = titleStyle
+	subL.SetShowTitle(false)
+	subL.SetShowHelp(false)
 
 	selL := list.New([]list.Item{}, delegate, 0, 0)
 	selL.SetShowStatusBar(false)
 	selL.SetFilteringEnabled(false)
-	selL.Styles.Title = titleStyle
+	selL.SetShowTitle(false)
+	selL.SetShowHelp(false)
 
 	ti := textinput.New()
 	ti.Cursor.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("63"))
@@ -373,19 +385,33 @@ func (m model) View() string {
 		return ""
 	}
 
-	if m.state == stateEditing {
-		return fmt.Sprintf(
-			"\n  Edit %s\n\n  %s\n\n  (esc to cancel, enter to save)",
-			m.activeSetting.title,
-			m.textInput.View(),
-		)
+	// Calculate available dimensions for content
+	// Leave room for header (1), footer (1), and border (2)
+	availableHeight := m.height - 4
+	if availableHeight < 5 {
+		availableHeight = 5
+	}
+	availableWidth := m.width - 4
+	if availableWidth < 20 {
+		availableWidth = 20
 	}
 
-	if m.state == stateSelection {
-		return docStyle.Render(m.selectionList.View())
-	}
+	var content strings.Builder
+	var title string
+	var helpText string
 
-	if m.state == stateSubmenu {
+	switch m.state {
+	case stateEditing:
+		title = fmt.Sprintf("Edit %s", m.activeSetting.title)
+		helpText = "Enter: Save | Esc: Cancel"
+		content.WriteString("\n" + m.textInput.View() + "\n")
+	case stateSelection:
+		title = "Select " + m.activeSetting.title
+		helpText = "↑/↓: Navigate | Enter: Select | Esc: Back"
+		content.WriteString(m.selectionList.View())
+	case stateSubmenu:
+		title = m.activeSubmenu.title
+		helpText = "↑/↓: Navigate | Enter: Edit | Esc: Back | q: Quit"
 		// Update submenu descriptions with current values
 		items := m.submenuList.Items()
 		for i, item := range items {
@@ -399,42 +425,89 @@ func (m model) View() string {
 			}
 		}
 		m.submenuList.SetItems(items)
-		return docStyle.Render(m.submenuList.View())
-	}
-
-	// Update main menu descriptions with current values for direct settings
-	items := m.list.Items()
-	for i, item := range items {
-		if mi, ok := item.(menuItem); ok {
-			if mi.setting != nil {
-				val := getEnv(m.runner, mi.setting.envVar)
-				if mi.setting.envVar == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
-					if strings.Contains(val, `".*"`) || strings.Contains(val, `".+"`) {
-						val = "Disabled (All commands allowed)"
-					} else {
-						val = "Enabled"
+		content.WriteString(m.submenuList.View())
+	default:
+		title = "Config Menu"
+		helpText = "↑/↓: Navigate | Enter: Select | q: Quit"
+		// Update main menu descriptions with current values for direct settings
+		items := m.list.Items()
+		for i, item := range items {
+			if mi, ok := item.(menuItem); ok {
+				if mi.setting != nil {
+					val := getEnv(m.runner, mi.setting.envVar)
+					if mi.setting.envVar == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+						if strings.Contains(val, `".*"`) || strings.Contains(val, `".+"`) {
+							val = "Disabled (All commands allowed)"
+						} else {
+							val = "Enabled"
+						}
 					}
+					if val == "" {
+						val = "(not set)"
+					}
+					mi.description = fmt.Sprintf("Current: %s", val)
+					items[i] = mi
 				}
-				if val == "" {
-					val = "(not set)"
-				}
-				mi.description = fmt.Sprintf("Current: %s", val)
-				items[i] = mi
 			}
 		}
+		m.list.SetItems(items)
+		content.WriteString(m.list.View())
 	}
-	m.list.SetItems(items)
 
-	return docStyle.Render(m.list.View())
+	// Build the full-screen box content
+	var boxContent strings.Builder
+
+	// Header with centered title
+	titlePadding := (availableWidth - len(title)) / 2
+	if titlePadding < 0 {
+		titlePadding = 0
+	}
+	centeredTitle := strings.Repeat(" ", titlePadding) + title
+	boxContent.WriteString(headerStyle.Render(centeredTitle) + "\n")
+
+	// Content area - truncate to available height
+	contentLines := strings.Split(content.String(), "\n")
+	contentHeight := availableHeight - 2 // Leave room for header and footer
+	if len(contentLines) > contentHeight {
+		contentLines = contentLines[:contentHeight]
+	}
+	boxContent.WriteString(strings.Join(contentLines, "\n"))
+
+	// Pad to fill available height
+	currentLines := len(contentLines) + 1 // +1 for header
+	for i := currentLines; i < availableHeight-1; i++ {
+		boxContent.WriteString("\n")
+	}
+
+	// Footer with help text
+	boxContent.WriteString("\n" + helpStyle.Render(helpText))
+
+	// Render in a box with rounded border (matching ctrl-r style)
+	boxStyle := lipgloss.NewStyle().
+		Width(availableWidth).
+		Height(availableHeight).
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62"))
+
+	return boxStyle.Render(boxContent.String())
 }
 
-func runConfigUI(runner *interp.Runner) error {
+// RunConfigUI launches the interactive configuration UI
+func RunConfigUI(runner *interp.Runner) error {
 	p := tea.NewProgram(initialModel(runner), tea.WithAltScreen())
 	_, err := p.Run()
 	return err
 }
 
 func getEnv(runner *interp.Runner, key string) string {
+	// Safety Checks uses a session-only flag GSH_SAFETY_CHECKS_DISABLED
+	if key == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+		if runner.Vars["GSH_SAFETY_CHECKS_DISABLED"].String() == "true" {
+			return `[".*"]` // Disabled for this session
+		}
+		return "[]" // Enabled (default)
+	}
+
 	if v, ok := runner.Vars[key]; ok {
 		return v.String()
 	}
@@ -442,10 +515,39 @@ func getEnv(runner *interp.Runner, key string) string {
 }
 
 func saveConfig(key, value string, runner *interp.Runner) error {
-	// 1. Update current session
-	runner.Vars[key] = expand.Variable{Str: value, Exported: true, Kind: expand.String}
+	// Handle Safety Checks specially - only affects current session, not persisted
+	// Uses GSH_SAFETY_CHECKS_DISABLED flag which is checked in GetApprovedBashCommandRegex
+	if key == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+		// value is either '[".*"]' (disabled) or '[]' (enabled)
+		if strings.Contains(value, `".*"`) || strings.Contains(value, `".+"`) {
+			// Disable safety checks for this session only
+			runner.Vars["GSH_SAFETY_CHECKS_DISABLED"] = expand.Variable{
+				Exported: true,
+				Kind:     expand.String,
+				Str:      "true",
+			}
+		} else {
+			// Enable safety checks - remove the session flag
+			delete(runner.Vars, "GSH_SAFETY_CHECKS_DISABLED")
+		}
+		// Don't persist this setting - it only affects the current session
+		return nil
+	}
 
-	// 2. Persist to file
+	// For other settings, update current session
+	runner.Vars[key] = expand.Variable{
+		Exported: true,
+		Kind:     expand.String,
+		Str:      value,
+	}
+
+	// Store in session overrides to prevent bash scripts from resetting the value
+	sessionConfigOverrides[key] = value
+
+	// Sync to environment so changes take effect immediately
+	environment.SyncVariableToEnv(runner, key)
+
+	// Persist to file for future sessions
 	configPath := filepath.Join(os.Getenv("HOME"), ".gsh_config_ui")
 	f, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -464,7 +566,7 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 		return err
 	}
 
-	// 3. Ensure sourced in .gshrc
+	// Ensure sourced in .gshrc
 	gshrcPath := filepath.Join(os.Getenv("HOME"), ".gshrc")
 	content, err := os.ReadFile(gshrcPath)
 	if err == nil {

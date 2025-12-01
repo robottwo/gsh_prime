@@ -13,8 +13,8 @@ import (
 	"github.com/atinylittleshell/gsh/internal/analytics"
 	"github.com/atinylittleshell/gsh/internal/appupdate"
 	"github.com/atinylittleshell/gsh/internal/bash"
-	"github.com/atinylittleshell/gsh/internal/config"
 	"github.com/atinylittleshell/gsh/internal/completion"
+	"github.com/atinylittleshell/gsh/internal/config"
 	"github.com/atinylittleshell/gsh/internal/core"
 	"github.com/atinylittleshell/gsh/internal/environment"
 	"github.com/atinylittleshell/gsh/internal/evaluate"
@@ -76,6 +76,9 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Register session config override getter so environment package can access config overrides
+	environment.SetSessionConfigOverrideGetter(config.GetSessionOverride)
 
 	// Initialize the logger
 	logger, err := initializeLogger(runner)
@@ -218,7 +221,6 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 			bash.NewTypesetCommandHandler(),
 			bash.SetBuiltinHandler(),
 			analytics.NewAnalyticsCommandHandler(analyticsManager),
-			config.NewConfigCommandHandler(),
 			evaluate.NewEvaluateCommandHandler(analyticsManager),
 			history.NewHistoryCommandHandler(historyManager),
 			completion.NewCompleteCommandHandler(completionManager),
@@ -287,7 +289,6 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 
 	// Set the global runner for the typeset command handler
 	bash.SetTypesetRunner(runner)
-	config.SetConfigRunner(runner)
 
 	return runner, nil
 }
