@@ -350,50 +350,57 @@ func (m appModel) View() string {
 		assistantContent = m.errorStyle.Render(errorContent)
 	} else {
 		// Normal assistant content logic
-		helpBox := m.textInput.HelpBoxView()
-
-		// Determine available width for completion box
-		completionWidth := max(0, m.textInput.Width-4)
-		if helpBox != "" {
-			completionWidth = completionWidth / 2
-		}
-
-		completionBox := m.textInput.CompletionBoxView(availableHeight, completionWidth)
 		historyBox := m.textInput.HistorySearchBoxView(availableHeight, max(0, m.textInput.Width-2))
 
 		if historyBox != "" {
 			assistantContent = historyBox
-		} else if completionBox != "" && helpBox != "" {
-			// Clean up help box text to avoid redundancy
-			// Remove headers like "**@name** - " or "**name** - " using regex
-			// This covers patterns like "**@debug-assistant** - " or "**@!new** - "
-			helpBox = helpHeaderRegex.ReplaceAllString(helpBox, "")
-
-			// Render side-by-side
-			halfWidth := completionWidth // Already calculated
-
-			leftStyle := lipgloss.NewStyle().
-				Width(halfWidth).
-				Height(availableHeight).
-				MaxHeight(availableHeight)
-
-			rightStyle := lipgloss.NewStyle().
-				Width(halfWidth).
-				Height(availableHeight).
-				MaxHeight(availableHeight).
-				PaddingLeft(1) // Add some spacing between columns
-
-			// Render completion on left, help on right
-			assistantContent = lipgloss.JoinHorizontal(lipgloss.Top,
-				leftStyle.Render(completionBox),
-				rightStyle.Render(helpBox))
-
-		} else if completionBox != "" {
-			assistantContent = completionBox
-		} else if helpBox != "" {
-			assistantContent = helpBox
-		} else {
+		} else if strings.TrimSpace(m.textInput.Value()) == "" {
+			// When buffer is empty or whitespace-only, only show coach tips (via explanation), not completions/help
 			assistantContent = m.explanation
+		} else {
+			// Buffer has content - show completions and help
+			helpBox := m.textInput.HelpBoxView()
+
+			// Determine available width for completion box
+			completionWidth := max(0, m.textInput.Width-4)
+			if helpBox != "" {
+				completionWidth = completionWidth / 2
+			}
+
+			completionBox := m.textInput.CompletionBoxView(availableHeight, completionWidth)
+
+			if completionBox != "" && helpBox != "" {
+				// Clean up help box text to avoid redundancy
+				// Remove headers like "**@name** - " or "**name** - " using regex
+				// This covers patterns like "**@debug-assistant** - " or "**@!new** - "
+				helpBox = helpHeaderRegex.ReplaceAllString(helpBox, "")
+
+				// Render side-by-side
+				halfWidth := completionWidth // Already calculated
+
+				leftStyle := lipgloss.NewStyle().
+					Width(halfWidth).
+					Height(availableHeight).
+					MaxHeight(availableHeight)
+
+				rightStyle := lipgloss.NewStyle().
+					Width(halfWidth).
+					Height(availableHeight).
+					MaxHeight(availableHeight).
+					PaddingLeft(1) // Add some spacing between columns
+
+				// Render completion on left, help on right
+				assistantContent = lipgloss.JoinHorizontal(lipgloss.Top,
+					leftStyle.Render(completionBox),
+					rightStyle.Render(helpBox))
+
+			} else if completionBox != "" {
+				assistantContent = completionBox
+			} else if helpBox != "" {
+				assistantContent = helpBox
+			} else {
+				assistantContent = m.explanation
+			}
 		}
 	}
 
@@ -534,8 +541,11 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
                 switch {
                 case len(userInput) == 0 && m.dirty:
                         // if the model was dirty earlier, but now the user has cleared the input,
-                        // we should clear the prediction
+                        // we should clear the prediction and show coach tip
                         m.clearPrediction()
+                        if m.options.CoachTipProvider != nil {
+                                m.explanation = m.options.CoachTipProvider.GetQuickTip()
+                        }
 		case suppressionActive:
 			// When suppression is active (e.g., after Ctrl+K), clear stale predictions but
 			// still recompute assistant help for the remaining buffer while keeping
@@ -547,6 +557,9 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
                                                 stateId: m.predictionStateId,
                                         }
                                 }))
+                        } else if m.options.CoachTipProvider != nil {
+                                // Buffer is empty after Ctrl+K, show coach tip
+                                m.explanation = m.options.CoachTipProvider.GetQuickTip()
                         }
                 case len(userInput) > 0 && strings.HasPrefix(m.prediction, userInput) && !suggestionsCleared && !suppressionLifted:
                         // if the prediction already starts with the user input, we don't need to predict again
@@ -574,6 +587,9 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 				cmd = tea.Batch(cmd, tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
 					return attemptPredictionMsg{stateId: m.predictionStateId}
 				}))
+			} else if m.options.CoachTipProvider != nil {
+				// Buffer is empty after clearing suggestions, show coach tip
+				m.explanation = m.options.CoachTipProvider.GetQuickTip()
 			}
 		}
 	}
@@ -696,18 +712,12 @@ func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	m.explanation = msg.explanation
-
-	// When input buffer is empty (null state), show coach tip alongside explanation
-	if m.textInput.Value() == "" && m.options.CoachTipProvider != nil {
+	// When input buffer is empty or whitespace-only, show only coach tip - not LLM explanation
+	if strings.TrimSpace(m.textInput.Value()) == "" && m.options.CoachTipProvider != nil {
 		coachTip := m.options.CoachTipProvider.GetQuickTip()
-		if coachTip != "" {
-			if m.explanation != "" {
-				m.explanation = m.explanation + " | " + coachTip
-			} else {
-				m.explanation = coachTip
-			}
-		}
+		m.explanation = coachTip
+	} else {
+		m.explanation = msg.explanation
 	}
 
 	// Mark LLM as successful since explanation is the last step

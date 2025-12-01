@@ -61,7 +61,7 @@ func RunInteractiveShell(
 	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger)
 
 	// Set up coach for usage insights
-	shellCoach := coach.NewCoach(analyticsManager, logger)
+	shellCoach := coach.NewCoach(analyticsManager, historyManager, runner, logger)
 
 	// Set up completion
 	completionProvider := completion.NewShellCompletionProvider(completionManager, runner)
@@ -422,7 +422,8 @@ func handleCoachCommand(shellCoach *coach.Coach, runner *interp.Runner, logger *
 		return
 	}
 
-	// Display the report
+	// Display the report (includes LLM tip generation which may take a moment)
+	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Generating coach report with AI tips...\n") + gline.RESET_CURSOR_COLUMN)
 	reportText := shellCoach.FormatReport(report)
 	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(reportText) + gline.RESET_CURSOR_COLUMN)
 

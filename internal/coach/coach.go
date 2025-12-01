@@ -1,28 +1,63 @@
 package coach
 
 import (
+	"context"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/atinylittleshell/gsh/internal/analytics"
+	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/atinylittleshell/gsh/internal/utils"
+	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
+	"mvdan.cc/sh/v3/interp"
 )
 
 // Coach provides shell usage insights and optimization suggestions
 type Coach struct {
 	analyticsManager *analytics.AnalyticsManager
+	historyManager   *history.HistoryManager
 	logger           *zap.Logger
+	runner           *interp.Runner
+
+	// Fast model for quick tips (assistant box)
+	fastLLMClient   *openai.Client
+	fastModelId     string
+	fastTemperature *float64
+
+	// Slow model for detailed tips (@!coach command)
+	slowLLMClient   *openai.Client
+	slowModelId     string
+	slowTemperature *float64
+
+	// Cache for quick tips (populated once per session)
+	quickTipCache      []string
+	quickTipCacheMutex sync.Mutex
+	quickTipCacheError string
 }
 
 // NewCoach creates a new Coach instance
-func NewCoach(analyticsManager *analytics.AnalyticsManager, logger *zap.Logger) *Coach {
+func NewCoach(analyticsManager *analytics.AnalyticsManager, historyManager *history.HistoryManager, runner *interp.Runner, logger *zap.Logger) *Coach {
+	fastClient, fastConfig := utils.GetLLMClient(runner, utils.FastModel)
+	slowClient, slowConfig := utils.GetLLMClient(runner, utils.SlowModel)
 	return &Coach{
 		analyticsManager: analyticsManager,
+		historyManager:   historyManager,
 		logger:           logger,
+		runner:           runner,
+		fastLLMClient:    fastClient,
+		fastModelId:      fastConfig.ModelId,
+		fastTemperature:  fastConfig.Temperature,
+		slowLLMClient:    slowClient,
+		slowModelId:      slowConfig.ModelId,
+		slowTemperature:  slowConfig.Temperature,
 	}
 }
 
@@ -170,16 +205,16 @@ func normalizeCommand(cmd string) string {
 // isCompoundCommand checks if a command typically has important subcommands
 func isCompoundCommand(cmd string) bool {
 	compounds := map[string]bool{
-		"git":     true,
-		"docker":  true,
-		"kubectl": true,
-		"npm":     true,
-		"yarn":    true,
-		"go":      true,
-		"cargo":   true,
-		"pip":     true,
-		"apt":     true,
-		"brew":    true,
+		"git":       true,
+		"docker":    true,
+		"kubectl":   true,
+		"npm":       true,
+		"yarn":      true,
+		"go":        true,
+		"cargo":     true,
+		"pip":       true,
+		"apt":       true,
+		"brew":      true,
 		"systemctl": true,
 	}
 	return compounds[cmd]
@@ -220,27 +255,30 @@ func (c *Coach) calculatePredictionAccuracy(entries []analytics.AnalyticsEntry) 
 func (c *Coach) generateAliasSuggestions(commandCounts []CommandCount) []Insight {
 	var suggestions []Insight
 
+	// Get existing aliases to avoid suggesting duplicates
+	existingAliases := getExistingAliases()
+
 	// Common alias patterns
 	aliasPatterns := map[string]string{
-		"git status":      "gs",
-		"git add":         "ga",
-		"git commit":      "gc",
-		"git push":        "gp",
-		"git pull":        "gl",
-		"git checkout":    "gco",
-		"git branch":      "gb",
-		"git diff":        "gd",
-		"git log":         "glog",
-		"docker ps":       "dps",
-		"docker images":   "dimg",
-		"docker compose":  "dc",
-		"kubectl get":     "kg",
+		"git status":       "gs",
+		"git add":          "ga",
+		"git commit":       "gc",
+		"git push":         "gp",
+		"git pull":         "gl",
+		"git checkout":     "gco",
+		"git branch":       "gb",
+		"git diff":         "gd",
+		"git log":          "glog",
+		"docker ps":        "dps",
+		"docker images":    "dimg",
+		"docker compose":   "dc",
+		"kubectl get":      "kg",
 		"kubectl describe": "kd",
-		"npm install":     "ni",
-		"npm run":         "nr",
-		"cd ..":           "..",
-		"ls -la":          "ll",
-		"ls -l":           "l",
+		"npm install":      "ni",
+		"npm run":          "nr",
+		"cd ..":            "..",
+		"ls -la":           "ll",
+		"ls -l":            "l",
 	}
 
 	for _, cc := range commandCounts {
@@ -249,8 +287,17 @@ func (c *Coach) generateAliasSuggestions(commandCounts []CommandCount) []Insight
 			continue
 		}
 
+		// Skip if this command already has an alias
+		if commandHasAlias(cc.Command, existingAliases) {
+			continue
+		}
+
 		// Check if we have a known alias pattern
 		if alias, ok := aliasPatterns[cc.Command]; ok {
+			// Skip if this alias name is already in use
+			if aliasNameExists(alias, existingAliases) {
+				continue
+			}
 			suggestions = append(suggestions, Insight{
 				Type:        "alias",
 				Title:       fmt.Sprintf("Create alias '%s'", alias),
@@ -262,6 +309,10 @@ func (c *Coach) generateAliasSuggestions(commandCounts []CommandCount) []Insight
 		} else if len(cc.Command) > 5 && cc.Count >= 20 {
 			// For other long commands used frequently, suggest a generic alias
 			alias := generateAlias(cc.Command)
+			// Skip if this alias name is already in use
+			if aliasNameExists(alias, existingAliases) {
+				continue
+			}
 			suggestions = append(suggestions, Insight{
 				Type:        "alias",
 				Title:       fmt.Sprintf("Create alias '%s'", alias),
@@ -381,28 +432,278 @@ func (c *Coach) generateInsights(entries []analytics.AnalyticsEntry, topCommands
 	return insights
 }
 
+// defaultQuickTip is shown when there's not enough history for LLM-generated tips
+const defaultQuickTip = "TIP: Use gsh to track your shell patterns | @!coach for insights"
+
+// quickTipCacheSize is the number of tips to cache per session
+const quickTipCacheSize = 10
+
+// quickTipPrefix is prepended to all quick tips in the assistant box
+const quickTipPrefix = "TIP: "
+
 // GetQuickTip returns a brief insight suitable for the assistant box
+// Uses LLM-generated tips when there's enough history, otherwise shows default tip
+// Tips are cached per session and selected randomly
 func (c *Coach) GetQuickTip() string {
 	report, err := c.GenerateReport()
-	if err != nil || report == nil {
-		return ""
+	if err != nil {
+		return defaultQuickTip
+	}
+	if report == nil {
+		return defaultQuickTip
 	}
 
-	// Priority: alias suggestion > accuracy > achievement
-	if len(report.AliasSuggestions) > 0 {
-		s := report.AliasSuggestions[0]
-		return fmt.Sprintf("Tip: `%s` (%dx) - try `alias %s='%s'`", s.Command, s.Count, s.Alias, s.Command)
+	// If fewer than 25 commands in history, use default tip instead of LLM
+	if report.TotalCommands < 25 {
+		return defaultQuickTip
+	}
+
+	// Check if cache needs to be populated
+	c.quickTipCacheMutex.Lock()
+	defer c.quickTipCacheMutex.Unlock()
+
+	// If we have a cached error, return it
+	if c.quickTipCacheError != "" {
+		return fmt.Sprintf("Coach tip unavailable: %s", c.quickTipCacheError)
+	}
+
+	// If cache is empty, populate it
+	if len(c.quickTipCache) == 0 {
+		tips, errReason := c.generateQuickTips(report, quickTipCacheSize)
+		if len(tips) > 0 {
+			c.quickTipCache = tips
+		} else {
+			c.quickTipCacheError = errReason
+			return fmt.Sprintf("Coach tip unavailable: %s", errReason)
+		}
+	}
+
+	// Return a random tip from cache with prefix
+	return quickTipPrefix + c.quickTipCache[rand.Intn(len(c.quickTipCache))]
+}
+
+// generateQuickTips creates multiple contextual tips using the slow LLM for caching
+// Returns tips and error reason (empty if successful)
+func (c *Coach) generateQuickTips(report *Report, count int) ([]string, string) {
+	if c.slowLLMClient == nil {
+		return nil, "LLM client not configured"
+	}
+	if report == nil || count <= 0 {
+		return nil, "No report available"
+	}
+
+	// Build context about user's shell usage
+	var contextParts []string
+
+	if len(report.TopCommands) > 0 {
+		topCmds := make([]string, 0, min(5, len(report.TopCommands)))
+		for _, tc := range report.TopCommands[:min(5, len(report.TopCommands))] {
+			topCmds = append(topCmds, fmt.Sprintf("%s (%d times)", tc.Command, tc.Count))
+		}
+		contextParts = append(contextParts, "Top commands: "+strings.Join(topCmds, ", "))
 	}
 
 	if report.PredictionRate > 0 {
-		return fmt.Sprintf("Prediction accuracy: %.0f%% | Commands: %d", report.PredictionRate, report.TotalCommands)
+		contextParts = append(contextParts, fmt.Sprintf("Prediction accuracy: %.0f%%", report.PredictionRate))
 	}
 
-	if report.TotalCommands > 0 {
-		return fmt.Sprintf("Commands tracked: %d | Use @!coach for insights", report.TotalCommands)
+	contextParts = append(contextParts, fmt.Sprintf("Total commands: %d", report.TotalCommands))
+
+	usageContext := strings.Join(contextParts, ". ")
+
+	systemPrompt := fmt.Sprintf(`You are a helpful shell productivity coach. Based on the user's shell usage patterns, generate exactly %d brief, actionable tips to help them be more productive.
+
+Guidelines:
+- Keep each tip under 80 characters
+- Be specific and actionable
+- Focus on shell productivity, shortcuts, or workflow improvements
+- Don't suggest aliases (those are handled separately)
+- Make each tip unique and different from the others
+- Examples of good tips:
+  - "Try 'cd -' to return to your previous directory"
+  - "Use '!!' to repeat your last command"
+  - "Ctrl+R searches your command history"
+  - "Try 'git stash' to save uncommitted changes temporarily"
+
+Respond with exactly %d tips, one per line, no numbering or bullets.`, count, count)
+
+	userPrompt := fmt.Sprintf("User's shell usage: %s\n\nGenerate %d helpful productivity tips:", usageContext, count)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	request := openai.ChatCompletionRequest{
+		Model: c.slowModelId,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
+		MaxTokens:   500,
+		Temperature: 1.0, // Higher temperature for more varied tips
 	}
 
-	return "Use gsh to track your shell patterns | @!coach for insights"
+	resp, err := c.slowLLMClient.CreateChatCompletion(ctx, request)
+	if err != nil {
+		c.logger.Debug("failed to generate quick tips", zap.Error(err))
+		return nil, fmt.Sprintf("LLM request failed: %v", err)
+	}
+
+	if len(resp.Choices) == 0 {
+		return nil, "LLM returned no response"
+	}
+
+	// Parse the response - split by newlines and filter empty lines
+	content := strings.TrimSpace(resp.Choices[0].Message.Content)
+	if content == "" {
+		return nil, "LLM returned empty content"
+	}
+
+	lines := strings.Split(content, "\n")
+	var tips []string
+	for _, line := range lines {
+		tip := strings.TrimSpace(line)
+		// Remove common prefixes like "1.", "- ", "• ", etc.
+		tip = strings.TrimLeft(tip, "0123456789.-•* ")
+		tip = strings.TrimSpace(tip)
+		if tip != "" {
+			// Truncate if too long
+			if len(tip) > 100 {
+				tip = tip[:97] + "..."
+			}
+			tips = append(tips, tip)
+		}
+	}
+
+	if len(tips) == 0 {
+		return nil, "LLM returned empty tips"
+	}
+
+	return tips, ""
+}
+
+// generateMultipleLLMTips creates multiple contextual tips using the slow LLM
+// Returns tips and an error reason string (empty if successful)
+func (c *Coach) generateMultipleLLMTips(report *Report, count int) ([]string, string) {
+	if c.slowLLMClient == nil {
+		return nil, "LLM client not configured"
+	}
+	if report == nil || count <= 0 {
+		return nil, "Invalid report or count"
+	}
+
+	// Build context about user's shell usage
+	var contextParts []string
+
+	if len(report.TopCommands) > 0 {
+		topCmds := make([]string, 0, min(10, len(report.TopCommands)))
+		for _, tc := range report.TopCommands[:min(10, len(report.TopCommands))] {
+			topCmds = append(topCmds, fmt.Sprintf("%s (%d times)", tc.Command, tc.Count))
+		}
+		contextParts = append(contextParts, "Top commands: "+strings.Join(topCmds, ", "))
+	}
+
+	if report.PredictionRate > 0 {
+		contextParts = append(contextParts, fmt.Sprintf("Prediction accuracy: %.0f%%", report.PredictionRate))
+	}
+
+	contextParts = append(contextParts, fmt.Sprintf("Total commands: %d", report.TotalCommands))
+
+	// Get recent command history for more context
+	var commandHistoryContext string
+	if c.historyManager != nil {
+		historyEntries, err := c.historyManager.GetRecentEntries("", 50)
+		if err == nil && len(historyEntries) > 0 {
+			var commands []string
+			for _, entry := range historyEntries {
+				// Exclude "exit" command from history context
+				if strings.TrimSpace(entry.Command) == "exit" {
+					continue
+				}
+				commands = append(commands, entry.Command)
+			}
+			if len(commands) > 0 {
+				commandHistoryContext = "\n\nRecent command history:\n" + strings.Join(commands, "\n")
+			}
+		}
+	}
+
+	usageContext := strings.Join(contextParts, ". ")
+
+	systemPrompt := fmt.Sprintf(`You are a helpful shell productivity coach. Based on the user's shell usage patterns and recent command history, generate exactly %d brief, actionable tips to help them be more productive.
+
+Guidelines:
+- Keep each tip under 80 characters
+- Be specific and actionable based on the user's actual commands
+- Focus on shell productivity, shortcuts, or workflow improvements
+- Try to provide a diverse set of suggestions
+- Don't suggest commands that are already in the user's top commands
+- Don't suggest aliases (those are handled separately)
+- Make each tip unique and different from the others
+- Tailor tips to the tools and workflows the user actually uses
+- Examples of good tips:
+  - "Try 'cd -' to return to your previous directory"
+  - "Use '!!' to repeat your last command"
+  - "Ctrl+R searches your command history"
+  - "Try 'git stash' to save uncommitted changes temporarily"
+
+Respond with exactly %d tips, one per line, no numbering or bullets.`, count, count)
+
+	userPrompt := fmt.Sprintf("User's shell usage: %s%s\n\nGenerate %d helpful productivity tips:", usageContext, commandHistoryContext, count)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	request := openai.ChatCompletionRequest{
+		Model: c.slowModelId,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: "system", Content: systemPrompt},
+			{Role: "user", Content: userPrompt},
+		},
+		MaxTokens: 500,
+	}
+	if c.slowTemperature != nil {
+		request.Temperature = float32(*c.slowTemperature)
+	}
+
+	resp, err := c.slowLLMClient.CreateChatCompletion(ctx, request)
+	if err != nil {
+		c.logger.Debug("failed to generate LLM tips", zap.Error(err))
+		return nil, fmt.Sprintf("LLM request failed: %v", err)
+	}
+
+	if len(resp.Choices) == 0 {
+		return nil, "LLM returned no response"
+	}
+
+	// Parse the response - split by newlines and filter empty lines
+	content := strings.TrimSpace(resp.Choices[0].Message.Content)
+	lines := strings.Split(content, "\n")
+
+	var tips []string
+	for _, line := range lines {
+		tip := strings.TrimSpace(line)
+		// Remove common prefixes like "1.", "- ", "• ", etc.
+		tip = strings.TrimLeft(tip, "0123456789.-•* ")
+		tip = strings.TrimSpace(tip)
+		if tip != "" {
+			// Truncate if too long
+			if len(tip) > 100 {
+				tip = tip[:97] + "..."
+			}
+			tips = append(tips, tip)
+		}
+	}
+
+	// Return up to the requested count
+	if len(tips) > count {
+		tips = tips[:count]
+	}
+
+	if len(tips) == 0 {
+		return nil, "LLM returned empty tips"
+	}
+
+	return tips, ""
 }
 
 // FormatReport returns a formatted string of the coaching report
@@ -422,12 +723,18 @@ func (c *Coach) FormatReport(report *Report) string {
 	}
 	sb.WriteString(fmt.Sprintf("Total Commands: %d\n\n", report.TotalCommands))
 
-	// Top Commands
+	// Top Commands (excluding short one-word commands)
 	if len(report.TopCommands) > 0 {
 		sb.WriteString("═══ Your Top Commands ═══\n")
-		for i, tc := range report.TopCommands {
+		displayIndex := 0
+		for _, tc := range report.TopCommands {
+			// Skip one-word commands fewer than 6 characters
+			if !strings.Contains(tc.Command, " ") && len(tc.Command) < 6 {
+				continue
+			}
+			displayIndex++
 			bar := strings.Repeat("█", min(20, tc.Count/max(1, report.TopCommands[0].Count/20+1)))
-			sb.WriteString(fmt.Sprintf("%2d. %-20s %s (%d)\n", i+1, tc.Command, bar, tc.Count))
+			sb.WriteString(fmt.Sprintf("%2d. %-20s %s (%d)\n", displayIndex, tc.Command, bar, tc.Count))
 		}
 		sb.WriteString("\n")
 	}
@@ -460,6 +767,18 @@ func (c *Coach) FormatReport(report *Report) string {
 		}
 		sb.WriteString("\n")
 	}
+
+	// LLM-generated tips (using slow model with command history context)
+	sb.WriteString("═══ AI-Powered Tips ═══\n")
+	llmTips, errReason := c.generateMultipleLLMTips(report, 5)
+	if len(llmTips) > 0 {
+		for _, tip := range llmTips {
+			sb.WriteString(fmt.Sprintf("💡 %s\n", tip))
+		}
+	} else {
+		sb.WriteString(fmt.Sprintf("⚠️  Could not generate AI tips: %s\n", errReason))
+	}
+	sb.WriteString("\n")
 
 	// Footer
 	sb.WriteString("───────────────────────────────────────────────────────────────\n")
@@ -509,22 +828,30 @@ func (c *Coach) ApplyAlias(aliasName, command string) error {
 	if err != nil {
 		return fmt.Errorf("failed to open .gshrc: %w", err)
 	}
-	defer f.Close()
+
+	var writeErr error
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && writeErr == nil {
+			writeErr = fmt.Errorf("failed to close %s: %w", gshrcPath, closeErr)
+		}
+	}()
 
 	// Add newline if file doesn't end with one
 	if len(content) > 0 && content[len(content)-1] != '\n' {
 		if _, err := f.WriteString("\n"); err != nil {
-			return fmt.Errorf("failed to write to .gshrc: %w", err)
+			writeErr = fmt.Errorf("failed to write to .gshrc: %w", err)
+			return writeErr
 		}
 	}
 
 	// Write comment and alias
 	comment := fmt.Sprintf("\n# Added by gsh coach on %s\n", time.Now().Format("2006-01-02"))
 	if _, err := f.WriteString(comment + aliasLine + "\n"); err != nil {
-		return fmt.Errorf("failed to write alias to .gshrc: %w", err)
+		writeErr = fmt.Errorf("failed to write alias to .gshrc: %w", err)
+		return writeErr
 	}
 
-	return nil
+	return writeErr
 }
 
 func min(a, b int) int {
@@ -539,4 +866,50 @@ func max(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// aliasRegex matches alias definitions like: alias name='command' or alias name="command" or alias name=command
+var aliasRegex = regexp.MustCompile(`(?m)^\s*alias\s+(\w+)=['"]?([^'"#\n]+)['"]?`)
+
+// getExistingAliases reads .gshrc and returns a map of alias names to their commands
+func getExistingAliases() map[string]string {
+	aliases := make(map[string]string)
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return aliases
+	}
+
+	gshrcPath := filepath.Join(homeDir, ".gshrc")
+	content, err := os.ReadFile(gshrcPath)
+	if err != nil {
+		return aliases
+	}
+
+	matches := aliasRegex.FindAllStringSubmatch(string(content), -1)
+	for _, match := range matches {
+		if len(match) >= 3 {
+			aliasName := match[1]
+			command := strings.TrimSpace(match[2])
+			aliases[aliasName] = command
+		}
+	}
+
+	return aliases
+}
+
+// commandHasAlias checks if a command already has an alias defined
+func commandHasAlias(command string, existingAliases map[string]string) bool {
+	for _, aliasCmd := range existingAliases {
+		if aliasCmd == command {
+			return true
+		}
+	}
+	return false
+}
+
+// aliasNameExists checks if an alias name is already in use
+func aliasNameExists(aliasName string, existingAliases map[string]string) bool {
+	_, exists := existingAliases[aliasName]
+	return exists
 }

@@ -509,7 +509,13 @@ func TestGetHelpInfo(t *testing.T) {
 			name:     "help for @! empty",
 			line:     "@!",
 			pos:      2,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!coach** - View shell usage insights and tips\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations",
+		},
+		{
+			name:     "help for @!coach",
+			line:     "@!coach",
+			pos:      7,
+			expected: "**@!coach** - View shell usage insights and tips\n\nDisplays a coaching report with your top commands, prediction accuracy, alias suggestions, and AI-powered productivity tips.",
 		},
 		{
 			name:     "help for @!new",
@@ -533,13 +539,13 @@ func TestGetHelpInfo(t *testing.T) {
 			name:     "help for partial @!n (matches new)",
 			line:     "@!n",
 			pos:      3,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!coach** - View shell usage insights and tips\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations",
 		},
 		{
 			name:     "help for partial @!t (matches tokens)",
 			line:     "@!t",
 			pos:      3,
-			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations",
+			expected: "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!coach** - View shell usage insights and tips\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations",
 		},
 		{
 			name:     "help for @!subagents",
