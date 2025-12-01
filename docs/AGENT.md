@@ -181,6 +181,9 @@ gsh> @!new
 
 # Show token usage statistics for the current chat session
 gsh> @!tokens
+
+# View shell usage insights, alias suggestions, and AI-powered productivity tips
+gsh> @!coach
 ```
 
 ## Magic Fix
