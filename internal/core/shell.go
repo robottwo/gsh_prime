@@ -12,6 +12,7 @@ import (
 	"github.com/atinylittleshell/gsh/internal/agent"
 	"github.com/atinylittleshell/gsh/internal/analytics"
 	"github.com/atinylittleshell/gsh/internal/bash"
+	"github.com/atinylittleshell/gsh/internal/coach"
 	"github.com/atinylittleshell/gsh/internal/completion"
 	"github.com/atinylittleshell/gsh/internal/config"
 	"github.com/atinylittleshell/gsh/internal/environment"
@@ -58,6 +59,9 @@ func RunInteractiveShell(
 
 	// Set up subagent integration
 	subagentIntegration := subagent.NewSubagentIntegration(runner, historyManager, logger)
+
+	// Set up coach for usage insights
+	shellCoach := coach.NewCoach(analyticsManager, logger)
 
 	// Set up completion
 	completionProvider := completion.NewShellCompletionProvider(completionManager, runner)
@@ -118,6 +122,7 @@ func RunInteractiveShell(
 		options.AssistantHeight = environment.GetAssistantHeight(runner, logger)
 		options.CompletionProvider = completionProvider
 		options.RichHistory = richHistory
+		options.CoachTipProvider = shellCoach
 
 		line, err := gline.Gline(prompt, historyCommands, "", predictor, explainer, analyticsManager, logger, options)
 
@@ -157,6 +162,9 @@ func RunInteractiveShell(
 					}
 					// Sync any gsh variables that were changed in the config UI
 					environment.SyncVariablesToEnv(runner)
+					continue
+				case "coach":
+					handleCoachCommand(shellCoach, runner, logger)
 					continue
 				default:
 					logger.Warn("unknown agent control", zap.String("control", control))
@@ -403,4 +411,70 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	_, _, _ = bash.RunBashCommand(ctx, runner, fmt.Sprintf("GSH_LAST_COMMAND_EXIT_CODE=%d", exitCode))
 
 	return exited, nil
+}
+
+// handleCoachCommand displays the coach report and offers to apply suggestions interactively
+func handleCoachCommand(shellCoach *coach.Coach, runner *interp.Runner, logger *zap.Logger) {
+	report, err := shellCoach.GenerateReport()
+	if err != nil {
+		logger.Error("failed to generate coach report", zap.Error(err))
+		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("Failed to generate coach report\n") + gline.RESET_CURSOR_COLUMN)
+		return
+	}
+
+	// Display the report
+	reportText := shellCoach.FormatReport(report)
+	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(reportText) + gline.RESET_CURSOR_COLUMN)
+
+	// If there are alias suggestions, offer to apply them interactively
+	if len(report.AliasSuggestions) > 0 {
+		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("\n") + gline.RESET_CURSOR_COLUMN)
+
+		for _, suggestion := range report.AliasSuggestions {
+			defaultToYes := environment.GetDefaultToYes(runner)
+			promptText := fmt.Sprintf("Add alias '%s' for '%s'? [y/N] ", suggestion.Alias, suggestion.Command)
+			if defaultToYes {
+				promptText = fmt.Sprintf("Add alias '%s' for '%s'? [Y/n] ", suggestion.Alias, suggestion.Command)
+			}
+
+			fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(promptText) + gline.RESET_CURSOR_COLUMN)
+
+			// Read single key in raw mode
+			fd := int(os.Stdin.Fd())
+			oldState, err := term.MakeRaw(fd)
+			if err != nil {
+				logger.Error("failed to set raw mode", zap.Error(err))
+				continue
+			}
+			var buf [1]byte
+			_, _ = os.Stdin.Read(buf[:])
+			_ = term.Restore(fd, oldState)
+
+			char := buf[0]
+			// Echo the character and newline
+			if char == '\r' || char == '\n' {
+				fmt.Println()
+			} else {
+				fmt.Printf("%c\n", char)
+			}
+
+			// Determine if confirmed based on default setting
+			confirmed := char == 'y' || char == 'Y'
+			if defaultToYes && (char == '\r' || char == '\n') {
+				confirmed = true
+			}
+
+			if confirmed {
+				err := shellCoach.ApplyAlias(suggestion.Alias, suggestion.Command)
+				if err != nil {
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR(fmt.Sprintf("Failed to add alias: %s\n", err)) + gline.RESET_CURSOR_COLUMN)
+				} else {
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("Added alias '%s' to ~/.gshrc. Restart gsh or run 'source ~/.gshrc' to use it.\n", suggestion.Alias)) + gline.RESET_CURSOR_COLUMN)
+				}
+			} else if char == 'q' || char == 'Q' {
+				// Allow user to quit the suggestion loop
+				break
+			}
+		}
+	}
 }

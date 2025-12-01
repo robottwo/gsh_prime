@@ -697,6 +697,19 @@ func (m appModel) setExplanation(msg setExplanationMsg) (tea.Model, tea.Cmd) {
 	}
 
 	m.explanation = msg.explanation
+
+	// When input buffer is empty (null state), show coach tip alongside explanation
+	if m.textInput.Value() == "" && m.options.CoachTipProvider != nil {
+		coachTip := m.options.CoachTipProvider.GetQuickTip()
+		if coachTip != "" {
+			if m.explanation != "" {
+				m.explanation = m.explanation + " | " + coachTip
+			} else {
+				m.explanation = coachTip
+			}
+		}
+	}
+
 	// Mark LLM as successful since explanation is the last step
 	m.llmIndicator.SetStatus(LLMStatusSuccess)
 	return m, nil
