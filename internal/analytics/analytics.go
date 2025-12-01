@@ -89,3 +89,46 @@ func (analyticsManager *AnalyticsManager) GetTotalCount() (int64, error) {
 	}
 	return count, nil
 }
+
+func (analyticsManager *AnalyticsManager) GetAllEntries() ([]AnalyticsEntry, error) {
+	var entries []AnalyticsEntry
+	result := analyticsManager.db.Where("input <> '' AND actual NOT LIKE '#%'").Order("created_at asc").Find(&entries)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return entries, nil
+}
+
+func (analyticsManager *AnalyticsManager) GetCommandFrequencies() (map[string]int64, error) {
+	var results []struct {
+		Actual string
+		Count  int64
+	}
+	if err := analyticsManager.db.Model(&AnalyticsEntry{}).Select("actual, count(*) as count").Where("actual NOT LIKE '#%'").Group("actual").Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	freq := make(map[string]int64)
+	for _, r := range results {
+		freq[r.Actual] = r.Count
+	}
+	return freq, nil
+}
+
+// GetDailyActivity returns a map of date string (YYYY-MM-DD) to command count
+func (analyticsManager *AnalyticsManager) GetDailyActivity() (map[string]int64, error) {
+	var results []struct {
+		Date  string
+		Count int64
+	}
+	// SQLite specific date function
+	if err := analyticsManager.db.Model(&AnalyticsEntry{}).Select("date(created_at) as date, count(*) as count").Group("date(created_at)").Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	activity := make(map[string]int64)
+	for _, r := range results {
+		activity[r.Date] = r.Count
+	}
+	return activity, nil
+}
