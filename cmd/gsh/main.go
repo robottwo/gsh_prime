@@ -13,6 +13,7 @@ import (
 	"github.com/atinylittleshell/gsh/internal/analytics"
 	"github.com/atinylittleshell/gsh/internal/appupdate"
 	"github.com/atinylittleshell/gsh/internal/bash"
+	"github.com/atinylittleshell/gsh/internal/coach"
 	"github.com/atinylittleshell/gsh/internal/completion"
 	"github.com/atinylittleshell/gsh/internal/config"
 	"github.com/atinylittleshell/gsh/internal/core"
@@ -221,6 +222,7 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 			bash.NewTypesetCommandHandler(),
 			bash.SetBuiltinHandler(),
 			analytics.NewAnalyticsCommandHandler(analyticsManager),
+			coach.NewCoachCommandHandler(analyticsManager),
 			evaluate.NewEvaluateCommandHandler(analyticsManager),
 			history.NewHistoryCommandHandler(historyManager),
 			completion.NewCompleteCommandHandler(completionManager),
