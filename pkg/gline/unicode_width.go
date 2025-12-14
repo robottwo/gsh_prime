@@ -31,20 +31,23 @@ func probeTerminalCharWidth(char rune) int {
 	// Default fallback - most western terminals render ambiguous width chars as 1
 	const defaultWidth = 1
 
-	fd := int(os.Stdin.Fd())
+	stdinFd := int(os.Stdin.Fd())
+	stdoutFd := int(os.Stdout.Fd())
 
-	// Check if stdin is a terminal
-	if !term.IsTerminal(fd) {
+	// Check if both stdin and stdout are terminals.
+	// We need stdin to read the DSR response, and stdout to write escape sequences.
+	// If either is not a terminal, we risk hanging or writing garbage to a file/pipe.
+	if !term.IsTerminal(stdinFd) || !term.IsTerminal(stdoutFd) {
 		return defaultWidth
 	}
 
 	// Save terminal state and set raw mode
-	oldState, err := term.MakeRaw(fd)
+	oldState, err := term.MakeRaw(stdinFd)
 	if err != nil {
 		return defaultWidth
 	}
 	defer func() {
-		_ = term.Restore(fd, oldState)
+		_ = term.Restore(stdinFd, oldState)
 	}()
 
 	// Save cursor position, move to column 1, print char, query position
