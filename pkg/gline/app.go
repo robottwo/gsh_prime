@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atinylittleshell/gsh/internal/git"
+	"github.com/atinylittleshell/gsh/internal/system"
 	"github.com/atinylittleshell/gsh/pkg/shellinput"
 	"github.com/charmbracelet/bubbles/cursor"
 	tea "github.com/charmbracelet/bubbletea"
@@ -49,6 +51,9 @@ type appModel struct {
 
 	// LLM status indicator
 	llmIndicator LLMIndicator
+
+	// Border Status
+	borderStatus BorderStatusModel
 }
 
 type attemptPredictionMsg struct {
@@ -64,6 +69,14 @@ type setPredictionMsg struct {
 type attemptExplanationMsg struct {
 	stateId    int
 	prediction string
+}
+
+type tickResourceMsg struct {
+	time time.Time
+}
+
+type gitStatusMsg struct {
+	status *git.RepoStatus
 }
 
 // errorMsg wraps an error that occurred during prediction or explanation
@@ -127,6 +140,9 @@ func initialModel(
 	textInput.CompletionProvider = options.CompletionProvider
 	textInput.Focus()
 
+	borderStatus := NewBorderStatusModel()
+	borderStatus.UpdateContext(options.User, options.Host, options.CurrentDirectory)
+
 	return appModel{
 		predictor: predictor,
 		explainer: explainer,
@@ -159,6 +175,7 @@ func initialModel(
 		originalPrompt: prompt,
 
 		llmIndicator: NewLLMIndicator(),
+		borderStatus: borderStatus,
 	}
 }
 
@@ -170,7 +187,25 @@ func (m appModel) Init() tea.Cmd {
 				stateId: m.predictionStateId,
 			}
 		},
+		m.tickResources(),
+		m.fetchGitStatus(),
 	)
+}
+
+func (m appModel) tickResources() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return tickResourceMsg{time: t}
+	})
+}
+
+func (m appModel) fetchGitStatus() tea.Cmd {
+	return func() tea.Msg {
+		if m.options.CurrentDirectory == "" {
+			return nil
+		}
+		status := git.GetStatus(m.options.CurrentDirectory)
+		return gitStatusMsg{status: status}
+	}
 }
 
 func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -183,11 +218,23 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
+	case tickResourceMsg:
+		res := system.GetResources()
+		m.borderStatus.UpdateResources(res)
+		return m, m.tickResources()
+
+	case gitStatusMsg:
+		if msg.status != nil {
+			m.borderStatus.UpdateGit(msg.status)
+		}
+		return m, nil
+
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.textInput.Width = msg.Width
 		m.explanationStyle = m.explanationStyle.Width(max(1, msg.Width-2))
 		m.completionStyle = m.completionStyle.Width(max(1, msg.Width-2))
+		m.borderStatus.SetWidth(max(0, msg.Width-2))
 		return m, nil
 
 	case terminateMsg:
@@ -394,6 +441,8 @@ func (m appModel) View() string {
 		} else if completionBox != "" {
 			assistantContent = completionBox
 		} else if helpBox != "" {
+			assistantContent = completionBox
+		} else if helpBox != "" {
 			assistantContent = helpBox
 		} else {
 			assistantContent = m.explanation
@@ -417,25 +466,117 @@ func (m appModel) View() string {
 		lines = append(lines, "")
 	}
 
-	// Render the LLM indicator
-	indicatorStr := " " + m.llmIndicator.View() + " "
-	indicatorLen := 2 + m.llmIndicator.Width() // spaces + indicator
+	// Top Border Logic
+	// ╭[Badge][risk]──[context]╮
+	topLeft := m.borderStatus.RenderTopLeft()
+	// Calculate available space for top context
+	// width - 2 (corners) - len(topLeft) - 2 (padding maybe?)
 
-	// Build the box manually
+	// We construct top border in pieces
+	// corner + topLeft + separator + context + ... + corner
+	// Actually typical lipgloss border is uniform. We need to override.
+
+	// We manually draw the top line.
+	// "╭" + [Badge][Risk] + "──" + [Context] + "──" + "╮"
+
+	// Let's compute exact widths.
+	topLeftWidth := lipgloss.Width(topLeft)
+
+	// Available width for middle
+	middleWidth := innerWidth
+
+	// If middleWidth is small, we might have issues.
+	if middleWidth <= 0 {
+		middleWidth = 0
+	}
+
+	topContentWidth := middleWidth
+	// We need some lines between topLeft and Context?
+	// Spec says: "Command kind badge immediately followed by the execution risk meter."
+	// "Top edge: Prompt-style context stripes ... separated by line-continuation characters"
+	// So: ╭[Badge][Risk]────[Context]────╮
+
+	// Context
+	// We want to fill the remaining space with context, right aligned or distributed?
+	// Spec says: "Top edge (left-to-right): Prompt-style context stripes"
+	// But Top-left is Badge/Risk.
+	// So Badge/Risk comes first, then Context.
+	// Should we pad with lines between them?
+
+	// If we just concatenate: Badge Risk Context
+	// And pad the rest with lines?
+	// Or: Badge Risk ── Context ── ?
+
+	// Let's assume: Badge Risk [context] ──────────
+	// Or: Badge Risk ── [context] ── ?
+
+	// Let's try to put context immediately after, separated by line.
+	// But context stripes are variable width.
+
+	// Render context with available width
+	// Available = topContentWidth - topLeftWidth
+	contextAvailableWidth := topContentWidth - topLeftWidth - 1 // -1 for separator
+	if contextAvailableWidth < 0 {
+		contextAvailableWidth = 0
+	}
+
+	topContext := m.borderStatus.RenderTopContext(contextAvailableWidth)
+	topContextWidth := lipgloss.Width(topContext)
+
+	// Line filler
+	fillerWidth := topContentWidth - topLeftWidth - topContextWidth
+	if fillerWidth < 0 {
+		fillerWidth = 0
+	}
+
+	// Construction
+	// ╭ + topLeft + [filler/separator] + topContext + [filler] + ╮
+	// We prefer context to be visible.
+	// The prompt context stripes usually sit on the line.
+
+	// Design choice:
+	// ╭[Badge][Risk]──[Context]──────────────╮
+
+	// Note: We need to use border style for the line parts (╭, ─, ╮)
+	// But Badge/Risk/Context have their own colors.
+
+	var topBar strings.Builder
+	topBar.WriteString(borderStyle.Render("╭"))
+	topBar.WriteString(topLeft)
+
+	if topContext != "" {
+		// Separator line
+		// Use Divider style from borderStatus? Or just border color?
+		// Spec: "separated by line-continuation characters ... degrade to icon-only"
+		// "Apply subtle color to the divider"
+		// borderStatus handles internal dividers in Context.
+		// Here we need divider between Risk and Context.
+		topBar.WriteString(m.borderStatus.styles.Divider.Render("─"))
+		topBar.WriteString(topContext)
+
+		// Remaining filler
+		if fillerWidth > 1 {
+			topBar.WriteString(borderStyle.Render(strings.Repeat("─", fillerWidth-1)))
+		}
+	} else {
+		// Just fill
+		if fillerWidth > 0 {
+			topBar.WriteString(borderStyle.Render(strings.Repeat("─", fillerWidth)))
+		}
+	}
+	topBar.WriteString(borderStyle.Render("╮"))
+
 	var result strings.Builder
-
-	// Top border: ╭───...───╮
-	topBorder := borderStyle.Render("╭" + strings.Repeat("─", innerWidth) + "╮")
-	result.WriteString(topBorder)
+	result.WriteString(topBar.String())
 	result.WriteString("\n")
 
 	// Content lines with left/right borders
-	contentWidth := innerWidth // Width available for content
+	// Middle content
+	contentWidth := innerWidth
 	for _, line := range lines {
 		// Truncate or pad line to fit content width
 		lineWidth := lipgloss.Width(line)
 		if lineWidth > contentWidth {
-			// Truncate the line - need to handle ANSI codes
 			line = truncateWithAnsi(line, contentWidth)
 			lineWidth = lipgloss.Width(line)
 		}
@@ -447,11 +588,30 @@ func (m appModel) View() string {
 		result.WriteString("\n")
 	}
 
-	// Bottom border with indicators: ╰───...─── Fast:✓ Slow:○ ╯
-	// Calculate how much space we have for the horizontal line
-	bottomLineWidth := max(0, innerWidth-indicatorLen)
-	bottomBorder := borderStyle.Render("╰"+strings.Repeat("─", bottomLineWidth)) + indicatorStr + borderStyle.Render("╯")
-	result.WriteString(bottomBorder)
+	// Bottom border with indicators: ╰[Res]──...── Fast:✓ Slow:○ ╯
+	// Bottom-left: Resource Glance
+	// Bottom-right: LLM Indicator (preserved)
+
+	bottomLeft := m.borderStatus.RenderBottomLeft()
+	bottomLeftWidth := lipgloss.Width(bottomLeft)
+
+	indicatorStr := " " + m.llmIndicator.View() + " "
+	indicatorLen := lipgloss.Width(indicatorStr)
+
+	// Available for line
+	bottomFillerWidth := innerWidth - bottomLeftWidth - indicatorLen
+	if bottomFillerWidth < 0 {
+		bottomFillerWidth = 0
+	}
+
+	// Construction
+	// ╰ + bottomLeft + ──────── + indicator + ╯
+
+	result.WriteString(borderStyle.Render("╰"))
+	result.WriteString(bottomLeft)
+	result.WriteString(borderStyle.Render(strings.Repeat("─", bottomFillerWidth)))
+	result.WriteString(indicatorStr)
+	result.WriteString(borderStyle.Render("╯"))
 
 	return inputStr + "\n" + result.String()
 }
@@ -520,6 +680,9 @@ func (m appModel) updateTextInput(msg tea.Msg) (appModel, tea.Cmd) {
 	// if the text input has changed, we want to attempt a prediction
 	if textUpdated && m.predictor != nil {
 		m.predictionStateId++
+
+		// Update border status with new input
+		m.borderStatus.UpdateInput(newVal)
 
 		// Clear any existing error when user types
 		m.lastError = nil
