@@ -92,6 +92,7 @@ type KeyMap struct {
 	PrevSuggestion          key.Binding
 	ClearScreen             key.Binding
 	ReverseSearch           key.Binding
+	HistorySort             key.Binding
 }
 
 // DefaultKeyMap is the default set of key bindings for navigating and acting
@@ -118,6 +119,7 @@ var DefaultKeyMap = KeyMap{
 	PrevValue:               key.NewBinding(key.WithKeys("up", "ctrl+p")),
 	ClearScreen:             key.NewBinding(key.WithKeys("ctrl+l")),
 	ReverseSearch:           key.NewBinding(key.WithKeys("ctrl+r")),
+	HistorySort:             key.NewBinding(key.WithKeys("ctrl+o")),
 }
 
 const (
@@ -733,6 +735,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			// Toggle Filter with Ctrl+F
 			case msg.String() == "ctrl+f":
 				m.toggleHistoryFilter()
+				return m, nil
+			// Toggle Sort with Ctrl+O
+			case key.Matches(msg, m.KeyMap.HistorySort):
+				m.toggleHistorySort()
 				return m, nil
 			// Left/Right: Accept and edit?
 			case key.Matches(msg, m.KeyMap.CharacterBackward), key.Matches(msg, m.KeyMap.CharacterForward):
