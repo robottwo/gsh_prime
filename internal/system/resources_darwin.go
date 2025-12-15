@@ -3,7 +3,6 @@
 package system
 
 import (
-	"bytes"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -57,7 +56,7 @@ func getResources() *Resources {
 	out, err = exec.Command("vm_stat").Output()
 	if err == nil {
 		lines := strings.Split(string(out), "\n")
-		var pagesFree, pagesActive, pagesInactive, pagesWired, pagesCompressed uint64
+		var pagesActive, pagesWired, pagesCompressed uint64
 		pageSize := uint64(4096) // Default
 		// On Apple Silicon page size is 16k? No, vm_stat usually reports in 4096 byte pages, the header says:
 		// "Mach Virtual Memory Statistics: (page size of 4096 bytes)"
@@ -84,12 +83,8 @@ func getResources() *Resources {
 			val, _ := strconv.ParseUint(valStr, 10, 64)
 
 			switch key {
-			case "Pages free":
-				pagesFree = val
 			case "Pages active":
 				pagesActive = val
-			case "Pages inactive":
-				pagesInactive = val
 			case "Pages wired down":
 				pagesWired = val
 			case "Pages occupied by compressor":
