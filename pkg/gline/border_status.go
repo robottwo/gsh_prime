@@ -256,16 +256,18 @@ func (m BorderStatusModel) RenderTopLeft() string {
 		riskStyle = m.styles.RiskAlert
 	}
 
-	// If space is tight, we might compress.
-	// For now render full.
-
 	return style.Render(badge) + " " + riskStyle.Render(riskBar)
 }
 
 func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
-	// [user@host]──[~/repo/subdir]──[git]
-	// Separator: ╲ or ─
-	sep := m.styles.Divider.Render("─")
+	// Items to display: [User@Host], [Dir], [Git]
+	// Strategy: Fit as many as possible, starting from Git (most truncated?)
+	// Actually typical shell prompt strategy is: Keep Dir, drop User/Host?
+	// The previous implementation dropped Git first, then User.
+
+	// Prepare raw strings
+	var items []string
+	var styles []lipgloss.Style
 
 	// User@Host
 	host := m.host
@@ -273,16 +275,13 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 		host = host[:8]
 	}
 	uHost := fmt.Sprintf("%s@%s", m.user, host)
-	if m.user == "" {
-		uHost = ""
+	if m.user != "" {
+		items = append(items, uHost)
+		styles = append(styles, m.styles.ContextUser)
 	}
 
 	// Dir
-	// Collapse middle if long
 	dir := m.cwd
-	// Try to replace home
-	// We don't have user home here easily, assume cwd is already processed or we do best effort
-	// Let's just use base if too long
 	if len(dir) > 20 {
 		dir = filepath.Base(dir)
 		if dir == "/" {
@@ -291,13 +290,15 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 			dir = ".../" + dir
 		}
 	}
+	if dir != "" {
+		items = append(items, dir)
+		styles = append(styles, m.styles.ContextDir)
+	}
 
 	// Git
 	gitStr := ""
-	gitStyle := m.styles.ContextGit
-
+	var gitStyle lipgloss.Style
 	if m.gitStatus != nil {
-		// repo:branch clean/dirty
 		repo := m.gitStatus.RepoName
 		branch := m.gitStatus.Branch
 		if len(branch) > 12 {
@@ -314,7 +315,7 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 				gitStyle = m.styles.RiskWarning
 			}
 		} else {
-			symbol = "✓" // or just clean
+			symbol = "✓"
 			gitStyle = m.styles.RiskCalm
 		}
 
@@ -325,80 +326,151 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 		if m.gitStatus.Behind > 0 {
 			gitStr += fmt.Sprintf(" ⬇%d", m.gitStatus.Behind)
 		}
+
+		items = append(items, gitStr)
+		styles = append(styles, gitStyle)
 	}
 
-	// Compose with priority
-	// 1. Badge+Risk (already handled in TopLeft, this is Top Edge)
-	// Actually TopLeft is separate.
-	// We are rendering the line content.
-
-	// We need to fit: uHost, dir, gitStr
-	// If constrained, drop git, then uHost
-
-	parts := []string{}
-	if uHost != "" {
-		parts = append(parts, m.styles.ContextUser.Render(uHost))
-	}
-	if dir != "" {
-		parts = append(parts, m.styles.ContextDir.Render(dir))
-	}
-	if gitStr != "" {
-		parts = append(parts, gitStyle.Render(gitStr))
+	if len(items) == 0 {
+		// Just fill
+		if maxWidth > 0 {
+			return m.styles.Divider.Render(strings.Repeat("─", maxWidth))
+		}
+		return ""
 	}
 
-	// Join with separators
-	full := strings.Join(parts, sep)
-	if lipgloss.Width(full) <= maxWidth {
-		return full
+	// Calculate widths
+	totalContentWidth := 0
+	for _, item := range items {
+		totalContentWidth += lipgloss.Width(item)
 	}
 
-	// Drop Git
-	if gitStr != "" {
-		parts = parts[:len(parts)-1]
-		full = strings.Join(parts, sep)
-		if lipgloss.Width(full) <= maxWidth {
-			return full
+	// If it doesn't fit, drop items
+	// Prioritize: Dir > Git > User (Current logic was Drop Git first, then User)
+	// Let's stick to Drop Git (last), then User (first).
+	// Items list is [User, Dir, Git] (usually).
+
+	// Try to fit all
+	// We need spacing gaps. At least 1 char per gap?
+	// If we use "spread evenly", we have gaps before each item.
+	// Minimum width = content + len(items).
+
+	// Reduce strategy
+	// 1. Remove Git (Index 2)
+	// 2. Remove User (Index 0)
+	// 3. Just Dir
+
+	activeIndices := []int{}
+	// Initially all
+	for i := range items {
+		activeIndices = append(activeIndices, i)
+	}
+
+	checkFit := func(indices []int) bool {
+		w := 0
+		for _, i := range indices {
+			w += lipgloss.Width(items[i])
+		}
+		// Need gaps.
+		// Distribute logic: LeftAnchor --[gap]-- Item1 --[gap]-- Item2 ...
+		// We have `LeftAnchor` already rendered. So we are filling `maxWidth`.
+		// We need `len(indices)` gaps.
+		// Min gap size = 1?
+		minWidth := w + len(indices)
+		return minWidth <= maxWidth
+	}
+
+	if !checkFit(activeIndices) {
+		// Try dropping Git (last item if present)
+		// activeIndices is [0, 1, 2] -> User, Dir, Git
+		if len(items) == 3 {
+			// Drop Git (2)
+			activeIndices = []int{0, 1} // User, Dir
+			if !checkFit(activeIndices) {
+				// Drop User (0)
+				activeIndices = []int{1} // Dir
+			}
+		} else if len(items) == 2 {
+			// If items were User, Dir -> Drop User?
+			// If items were Dir, Git -> Drop Git?
+			// Assuming User, Dir order.
+			// Drop User.
+			activeIndices = []int{1}
+		} else {
+			// 1 item, if it doesn't fit, maybe truncate it?
+			// For now, if even 1 item doesn't fit + 1 gap, we might return empty or truncated.
+			// Dir is already truncated.
+			if totalContentWidth > maxWidth {
+				// Fallback to just lines
+				if maxWidth > 0 {
+					return m.styles.Divider.Render(strings.Repeat("─", maxWidth))
+				}
+				return ""
+			}
 		}
 	}
 
-	// Drop UserHost
-	if uHost != "" && len(parts) > 1 {
-		// Keep Dir
-		return m.styles.ContextDir.Render(dir)
+	// Now we have indices that fit.
+	// Distribute them.
+	// Space = maxWidth - contentWidth.
+	// Gaps = len(activeIndices).
+	// We put a gap BEFORE each item.
+
+	contentWidth := 0
+	for _, i := range activeIndices {
+		contentWidth += lipgloss.Width(items[i])
 	}
 
-	// Just Dir (maybe truncated more)
-	return m.styles.ContextDir.Render(dir)
+	totalSpace := maxWidth - contentWidth
+	numGaps := len(activeIndices)
+	if numGaps == 0 {
+		if maxWidth > 0 {
+			return m.styles.Divider.Render(strings.Repeat("─", maxWidth))
+		}
+		return ""
+	}
+
+	baseGap := totalSpace / numGaps
+	extraGap := totalSpace % numGaps
+
+	var sb strings.Builder
+
+	for i, idx := range activeIndices {
+		gapSize := baseGap
+		if i < extraGap {
+			gapSize++
+		}
+
+		// Render Gap
+		sb.WriteString(m.styles.Divider.Render(strings.Repeat("─", gapSize)))
+
+		// Render Item
+		sb.WriteString(styles[idx].Render(items[idx]))
+	}
+
+	return sb.String()
 }
 
 func (m BorderStatusModel) RenderBottomLeft() string {
 	if m.resources == nil {
-		return m.styles.ResLabel.Render("C? R?")
+		return m.styles.ResLabel.Render("C: --% R: --%")
 	}
 
 	// CPU
 	cpu := m.resources.CPUPercent
-	cpuBar := m.renderMiniBar(cpu/100.0)
-	cpuStr := m.styles.ResLabel.Render("C") + cpuBar
+	cpuStr := m.styles.ResLabel.Render("C: ") + m.formatPercentage(cpu/100.0)
 
 	// RAM
 	ramRatio := 0.0
 	if m.resources.RAMTotal > 0 {
 		ramRatio = float64(m.resources.RAMUsed) / float64(m.resources.RAMTotal)
 	}
-	ramBar := m.renderMiniBar(ramRatio)
-	ramStr := m.styles.ResLabel.Render("R") + ramBar
+	ramStr := m.styles.ResLabel.Render("R: ") + m.formatPercentage(ramRatio)
 
 	return cpuStr + " " + ramStr
 }
 
-func (m BorderStatusModel) renderMiniBar(ratio float64) string {
-	// 3 chars: ▂▆█
-	// logic:
-	// < 0.33: ▂
-	// < 0.66: ▂▆
-	// else: ▂▆█
-
+func (m BorderStatusModel) formatPercentage(ratio float64) string {
 	// Color:
 	// < 0.5: Cool (Green)
 	// < 0.8: Warm (Amber)
@@ -413,16 +485,8 @@ func (m BorderStatusModel) renderMiniBar(ratio float64) string {
 		style = m.styles.ResHot
 	}
 
-	var bar string
-	if ratio < 0.1 {
-		bar = " " // empty
-	} else if ratio < 0.4 {
-		bar = "▂"
-	} else if ratio < 0.7 {
-		bar = "▂▆"
-	} else {
-		bar = "▂▆█"
-	}
+	pct := int(ratio * 100)
+	text := fmt.Sprintf("%d%%", pct)
 
-	return style.Render(bar)
+	return style.Render(text)
 }
