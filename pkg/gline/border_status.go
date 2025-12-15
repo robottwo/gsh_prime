@@ -2,6 +2,7 @@ package gline
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -85,15 +86,15 @@ func NewBorderStatusModel() BorderStatusModel {
 		RiskWarning: lipgloss.NewStyle().Foreground(lipgloss.Color("214")), // amber
 		RiskAlert:   lipgloss.NewStyle().Foreground(lipgloss.Color("196")), // red
 
-		ContextUser: lipgloss.NewStyle().Foreground(lipgloss.Color("241")), // dim gray
-		ContextDir:  lipgloss.NewStyle().Foreground(lipgloss.Color("39")),  // blueish
+		ContextUser: lipgloss.NewStyle().Foreground(lipgloss.Color("62")),  // match border color
+		ContextDir:  lipgloss.NewStyle().Foreground(lipgloss.Color("62")),  // match border color
 		ContextGit:  lipgloss.NewStyle().Foreground(lipgloss.Color("246")), // gray default
-		Divider:     lipgloss.NewStyle().Foreground(lipgloss.Color("238")), // dark gray
+		Divider:     lipgloss.NewStyle().Foreground(lipgloss.Color("62")),  // match border color
 
 		ResCool:  lipgloss.NewStyle().Foreground(lipgloss.Color("42")),  // green
 		ResWarm:  lipgloss.NewStyle().Foreground(lipgloss.Color("214")), // amber
 		ResHot:   lipgloss.NewStyle().Foreground(lipgloss.Color("196")), // red
-		ResLabel: lipgloss.NewStyle().Foreground(lipgloss.Color("240")), // dim
+		ResLabel: lipgloss.NewStyle().Foreground(lipgloss.Color("62")),  // match border color
 	}
 
 	return BorderStatusModel{
@@ -256,79 +257,118 @@ func (m BorderStatusModel) RenderTopLeft() string {
 		riskStyle = m.styles.RiskAlert
 	}
 
-	return style.Render(badge) + " " + riskStyle.Render(riskBar)
+	// Add space to the left of the badge for consistent spacing
+	return " " + style.Render(badge) + " " + riskStyle.Render(riskBar) + " "
+}
+
+// TopLeftWidth returns the actual display width of the top-left section.
+// This accounts for terminal-specific rendering of emoji characters like 🤖.
+func (m BorderStatusModel) TopLeftWidth() int {
+	// Calculate width based on badge type
+	var badgeWidth int
+	switch m.kind {
+	case KindAgentChat:
+		// Robot emoji has ambiguous width - use terminal probing
+		badgeWidth = GetRobotWidth()
+	default:
+		// Other badges are single-width ASCII characters
+		badgeWidth = 1
+	}
+
+	// Risk bar width based on level
+	var riskBarWidth int
+	switch m.riskLevel {
+	case RiskCalm:
+		riskBarWidth = 1 // "▂"
+	case RiskWarning:
+		riskBarWidth = 2 // "▂▆"
+	case RiskAlert:
+		riskBarWidth = 3 // "▂▆█"
+	}
+
+	// Total: leading space + badge + space + riskBar + trailing space
+	return 1 + badgeWidth + 1 + riskBarWidth + 1
 }
 
 func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
-	// Items to display: [User@Host], [Dir], [Git]
-	// Strategy: Fit as many as possible, starting from Git (most truncated?)
-	// Actually typical shell prompt strategy is: Keep Dir, drop User/Host?
-	// The previous implementation dropped Git first, then User.
+	// Items to display: [Dir with Git icons], [optional: User@Host if space allows]
+	// Git status is now appended directly to the directory display
+	// Strategy: Keep directory with git status, optionally show user@host if space allows
 
 	// Prepare raw strings
 	var items []string
 	var styles []lipgloss.Style
 
-	// User@Host
-	host := m.host
-	if len(host) > 8 {
-		host = host[:8]
-	}
-	uHost := fmt.Sprintf("%s@%s", m.user, host)
-	if m.user != "" {
-		items = append(items, uHost)
-		styles = append(styles, m.styles.ContextUser)
-	}
-
-	// Dir
+	// Dir with Git Status appended
 	dir := m.cwd
 	if len(dir) > 20 {
-		dir = filepath.Base(dir)
-		if dir == "/" {
-			dir = "/"
+		// Resolve home directory safely - first try HOME env var, then os.UserHomeDir()
+		var homeDir string
+		homeEnv := os.Getenv("HOME")
+		if homeEnv != "" {
+			homeDir = homeEnv
 		} else {
-			dir = ".../" + dir
-		}
-	}
-	if dir != "" {
-		items = append(items, dir)
-		styles = append(styles, m.styles.ContextDir)
-	}
-
-	// Git
-	gitStr := ""
-	var gitStyle lipgloss.Style
-	if m.gitStatus != nil {
-		repo := m.gitStatus.RepoName
-		branch := m.gitStatus.Branch
-		if len(branch) > 12 {
-			branch = branch[:11] + "…"
-		}
-
-		var symbol string
-		if !m.gitStatus.Clean {
-			if m.gitStatus.Conflict {
-				symbol = "!"
-				gitStyle = m.styles.RiskAlert
-			} else {
-				symbol = "●"
-				gitStyle = m.styles.RiskWarning
+			// HOME is empty, try os.UserHomeDir() as fallback
+			var err error
+			homeDir, err = os.UserHomeDir()
+			if err != nil {
+				homeDir = "" // Failed to resolve home, will use basename logic
 			}
+		}
+
+		// Only perform "~" substitution if we have a valid home directory and dir starts with it
+		if homeDir != "" && strings.HasPrefix(dir, homeDir) {
+			dir = "~" + dir[len(homeDir):]
 		} else {
-			symbol = "✓"
-			gitStyle = m.styles.RiskCalm
+			// Fall back to basename logic for long paths
+			dir = filepath.Base(dir)
+			if dir == "/" {
+				dir = "/"
+			} else {
+				dir = ".../" + dir
+			}
+		}
+	}
+
+	// If we have a valid dir, prepare it with git status icons appended.
+	// This is now the main display element instead of a separate git section.
+	if dir != "" {
+		displayStr := " " + m.styles.ContextDir.Render(dir)
+
+		if m.gitStatus != nil {
+			var symbol string
+			var gitStyle lipgloss.Style
+
+			if !m.gitStatus.Clean {
+				if m.gitStatus.Conflict {
+					symbol = "!"
+					gitStyle = m.styles.RiskAlert
+				} else {
+					symbol = "●"
+					gitStyle = m.styles.RiskWarning
+				}
+			} else {
+				symbol = "✓"
+				gitStyle = m.styles.RiskCalm
+			}
+
+			// Add space + symbol
+			displayStr += " " + gitStyle.Render(symbol)
+
+			// Arrows - use the same gitStyle for consistency
+			if m.gitStatus.Ahead > 0 {
+				displayStr += gitStyle.Render(fmt.Sprintf(" ⬆%d", m.gitStatus.Ahead))
+			}
+			if m.gitStatus.Behind > 0 {
+				displayStr += gitStyle.Render(fmt.Sprintf(" ⬇%d", m.gitStatus.Behind))
+			}
+
+			// Add space to the right of git status
+			displayStr += " "
 		}
 
-		gitStr = fmt.Sprintf("%s:%s %s", repo, branch, symbol)
-		if m.gitStatus.Ahead > 0 {
-			gitStr += fmt.Sprintf(" ⬆%d", m.gitStatus.Ahead)
-		}
-		if m.gitStatus.Behind > 0 {
-			gitStr += fmt.Sprintf(" ⬇%d", m.gitStatus.Behind)
-		}
-
-		items = append(items, gitStr)
-		styles = append(styles, gitStyle)
+		items = append(items, displayStr)
+		styles = append(styles, lipgloss.NewStyle()) // Style embedded in string
 	}
 
 	if len(items) == 0 {
@@ -345,20 +385,22 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 		totalContentWidth += lipgloss.Width(item)
 	}
 
+	// Git status expansion logic removed - git status is now shown as icons with directory
+	// No need for separate git branch expansion since we only show status icons
+
 	// If it doesn't fit, drop items
-	// Prioritize: Dir > Git > User (Current logic was Drop Git first, then User)
-	// Let's stick to Drop Git (last), then User (first).
-	// Items list is [User, Dir, Git] (usually).
+	// Prioritize: Directory (with git icons) > everything else
+	// Git status is now shown as icons with directory, so no separate git section
+	// Items list is now typically: [Dir with git icons] only
 
 	// Try to fit all
 	// We need spacing gaps. At least 1 char per gap?
 	// If we use "spread evenly", we have gaps before each item.
 	// Minimum width = content + len(items).
 
-	// Reduce strategy
-	// 1. Remove Git (Index 2)
-	// 2. Remove User (Index 0)
-	// 3. Just Dir
+	// Reduce strategy simplified:
+	// 1. Keep Directory with git icons (primary)
+	// 2. Drop everything else if needed (rare case)
 
 	activeIndices := []int{}
 	// Initially all
@@ -381,21 +423,12 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 	}
 
 	if !checkFit(activeIndices) {
-		// Try dropping Git (last item if present)
-		// activeIndices is [0, 1, 2] -> User, Dir, Git
-		if len(items) == 3 {
-			// Drop Git (2)
-			activeIndices = []int{0, 1} // User, Dir
-			if !checkFit(activeIndices) {
-				// Drop User (0)
-				activeIndices = []int{1} // Dir
-			}
-		} else if len(items) == 2 {
-			// If items were User, Dir -> Drop User?
-			// If items were Dir, Git -> Drop Git?
-			// Assuming User, Dir order.
-			// Drop User.
-			activeIndices = []int{1}
+		// Since we now prioritize directory with git icons above all,
+		// and typically only have one item, this should rarely trigger
+		// But if it does, ensure we keep at least the directory
+		if len(items) > 1 {
+			// Keep only the first item (which should be the directory with git icons)
+			activeIndices = []int{0}
 		} else {
 			// 1 item, if it doesn't fit, maybe truncate it?
 			// For now, if even 1 item doesn't fit + 1 gap, we might return empty or truncated.
@@ -411,7 +444,7 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 	}
 
 	// Now we have indices that fit.
-	// Distribute them.
+	// Distribute them with intelligent centering.
 	// Space = maxWidth - contentWidth.
 	// Gaps = len(activeIndices).
 	// We put a gap BEFORE each item.
@@ -423,7 +456,19 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 
 	totalSpace := maxWidth - contentWidth
 	numGaps := len(activeIndices)
+
 	if numGaps == 0 {
+		if maxWidth > 0 {
+			return m.styles.Divider.Render(strings.Repeat("─", maxWidth))
+		}
+		return ""
+	}
+
+	// Handle edge case: insufficient space for content + gaps
+	// Ensure we have enough space for minimum gap requirements
+	minRequiredWidth := contentWidth + numGaps // 1 char per gap minimum
+	if maxWidth < minRequiredWidth {
+		// Not enough space for content + gaps, just render a simple divider
 		if maxWidth > 0 {
 			return m.styles.Divider.Render(strings.Repeat("─", maxWidth))
 		}
@@ -439,6 +484,11 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 		gapSize := baseGap
 		if i < extraGap {
 			gapSize++
+		}
+
+		// Ensure gapSize is never negative (defensive programming)
+		if gapSize < 0 {
+			gapSize = 0
 		}
 
 		// Render Gap
@@ -458,16 +508,30 @@ func (m BorderStatusModel) RenderBottomLeft() string {
 
 	// CPU
 	cpu := m.resources.CPUPercent
-	cpuStr := m.styles.ResLabel.Render("C: ") + m.formatPercentage(cpu/100.0)
+	cpuStr := m.styles.ResLabel.Render("C:") + m.formatPercentage(cpu/100.0)
 
 	// RAM
 	ramRatio := 0.0
 	if m.resources.RAMTotal > 0 {
 		ramRatio = float64(m.resources.RAMUsed) / float64(m.resources.RAMTotal)
 	}
-	ramStr := m.styles.ResLabel.Render("R: ") + m.formatPercentage(ramRatio)
+	ramStr := m.styles.ResLabel.Render("R:") + m.formatPercentage(ramRatio)
 
-	return cpuStr + " " + ramStr
+	// Add spaces around the resource display to match lightning bolt formatting
+	return " " + cpuStr + " " + ramStr + " "
+}
+
+func (m BorderStatusModel) RenderBottomCenter() string {
+	// User@Host - centered at bottom
+	host := m.host
+	if len(host) > 8 {
+		host = host[:8]
+	}
+	if m.user != "" {
+		// Add spaces around user@host to match lightning bolt formatting
+		return " " + m.styles.ContextUser.Render(fmt.Sprintf("%s@%s", m.user, host)) + " "
+	}
+	return ""
 }
 
 func (m BorderStatusModel) formatPercentage(ratio float64) string {
