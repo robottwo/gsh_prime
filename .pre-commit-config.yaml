@@ -1,0 +1,18 @@
+repos:
+  - repo: https://github.com/golangci/golangci-lint
+    rev: v1.61.0
+    hooks:
+      - id: golangci-lint
+        args: ["--timeout", "5m"]
+  - repo: local
+    hooks:
+      - id: go-test
+        name: go test
+        entry: go test ./...
+        language: system
+        pass_filenames: false
+      - id: govulncheck
+        name: govulncheck
+        entry: govulncheck ./...
+        language: system
+        pass_filenames: false

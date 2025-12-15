@@ -53,6 +53,7 @@ Tips for upstreamable changes:
 Requirements:
 - Go 1.21+ on macOS or Linux
 - Make
+- pre-commit (optional, but recommended)
 
 Clone and build:
 
@@ -62,6 +63,15 @@ cd gsh_prime
 make build
 # binary at ./bin/gsh
 ```
+
+### Git Hooks
+
+We use [pre-commit](https://pre-commit.com/) to ensure code quality. To set up the git hooks:
+
+1. Install `pre-commit` (e.g., `pip install pre-commit` or `brew install pre-commit`).
+2. Run `pre-commit install`.
+
+Alternatively, you can run `./scripts/install-hooks.sh`.
 
 Useful docs:
 - Getting started: docs/GETTING_STARTED.md

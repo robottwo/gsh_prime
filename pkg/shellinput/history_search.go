@@ -294,7 +294,9 @@ func (m *Model) updateHistorySearch() {
 	// Sort matches based on sort mode
 	switch m.historySearchState.sortMode {
 	case HistorySortRecent:
-		// Sort by index in candidates (which preserves original time-descending order)
+		// Sort by index in candidates (which preserves original time-descending order, i.e. Newest First)
+		// Assuming historyItems are ordered Newest First (index 0 is newest),
+		// then lower index means more recent.
 		sort.SliceStable(matches, func(i, j int) bool {
 			return matches[i].Index < matches[j].Index
 		})
