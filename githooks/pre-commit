@@ -13,13 +13,13 @@ NC='\033[0m' # No Color
 MISSING_TOOLS=0
 
 if ! command -v golangci-lint >/dev/null 2>&1; then
-    echo "${RED}Error: golangci-lint is not installed.${NC}"
+    printf "${RED}Error: golangci-lint is not installed.${NC}\n"
     echo "Please run 'make tools' or install it manually."
     MISSING_TOOLS=1
 fi
 
 if ! command -v govulncheck >/dev/null 2>&1; then
-    echo "${RED}Error: govulncheck is not installed.${NC}"
+    printf "${RED}Error: govulncheck is not installed.${NC}\n"
     echo "Please run 'make tools' or install it manually."
     MISSING_TOOLS=1
 fi
@@ -28,23 +28,23 @@ if [ $MISSING_TOOLS -eq 1 ]; then
     exit 1
 fi
 
-echo "${YELLOW}Running golangci-lint...${NC}"
+printf "${YELLOW}Running golangci-lint...${NC}\n"
 if ! golangci-lint run; then
-    echo "${RED}golangci-lint failed.${NC}"
+    printf "${RED}golangci-lint failed.${NC}\n"
     exit 1
 fi
 
-echo "${YELLOW}Running unit tests...${NC}"
+printf "${YELLOW}Running unit tests...${NC}\n"
 if ! go test ./...; then
-    echo "${RED}Tests failed.${NC}"
+    printf "${RED}Tests failed.${NC}\n"
     exit 1
 fi
 
-echo "${YELLOW}Running govulncheck...${NC}"
+printf "${YELLOW}Running govulncheck...${NC}\n"
 if ! govulncheck ./...; then
-    echo "${RED}Vulnerability check failed.${NC}"
+    printf "${RED}Vulnerability check failed.${NC}\n"
     exit 1
 fi
 
-echo "${GREEN}All checks passed!${NC}"
+printf "${GREEN}All checks passed!${NC}\n"
 exit 0
