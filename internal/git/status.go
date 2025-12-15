@@ -64,13 +64,14 @@ func GetStatusWithContext(ctx context.Context, dir string) *RepoStatus {
 
 		switch parts[0] {
 		case "#":
-			if parts[1] == "branch.head" {
+			switch parts[1] {
+			case "branch.head":
 				if len(parts) > 2 {
 					status.Branch = parts[2]
 				} else {
 					status.Branch = "detached"
 				}
-			} else if parts[1] == "branch.ab" {
+			case "branch.ab":
 				// branch.ab +ahead -behind
 				if len(parts) >= 4 {
 					// parse +ahead

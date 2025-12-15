@@ -294,7 +294,7 @@ func (m BorderStatusModel) RenderTopContext(maxWidth int) string {
 
 	// Git
 	gitStr := ""
-	var gitStyle lipgloss.Style = m.styles.ContextGit
+	gitStyle := m.styles.ContextGit
 
 	if m.gitStatus != nil {
 		// repo:branch clean/dirty
