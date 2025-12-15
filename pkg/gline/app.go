@@ -1,6 +1,7 @@
 package gline
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -71,8 +72,9 @@ type attemptExplanationMsg struct {
 	prediction string
 }
 
-type tickResourceMsg struct {
-	time time.Time
+// resourceMsg carries updated system resources
+type resourceMsg struct {
+	resources *system.Resources
 }
 
 type gitStatusMsg struct {
@@ -187,15 +189,16 @@ func (m appModel) Init() tea.Cmd {
 				stateId: m.predictionStateId,
 			}
 		},
-		m.tickResources(),
+		m.fetchResources(),
 		m.fetchGitStatus(),
 	)
 }
 
-func (m appModel) tickResources() tea.Cmd {
-	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
-		return tickResourceMsg{time: t}
-	})
+func (m appModel) fetchResources() tea.Cmd {
+	return func() tea.Msg {
+		res := system.GetResources()
+		return resourceMsg{resources: res}
+	}
 }
 
 func (m appModel) fetchGitStatus() tea.Cmd {
@@ -203,7 +206,11 @@ func (m appModel) fetchGitStatus() tea.Cmd {
 		if m.options.CurrentDirectory == "" {
 			return nil
 		}
-		status := git.GetStatus(m.options.CurrentDirectory)
+		// Create a context with timeout for git status check
+		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+		defer cancel()
+
+		status := git.GetStatusWithContext(ctx, m.options.CurrentDirectory)
 		return gitStatusMsg{status: status}
 	}
 }
@@ -218,10 +225,19 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case tickResourceMsg:
-		res := system.GetResources()
-		m.borderStatus.UpdateResources(res)
-		return m, m.tickResources()
+	case resourceMsg:
+		m.borderStatus.UpdateResources(msg.resources)
+		// Schedule next update after 1 second
+		return m, tea.Tick(time.Second, func(t time.Time) tea.Msg {
+			// Instead of returning resourceMsg directly (which would block if done synchronously),
+			// we trigger another fetch command which runs in a goroutine
+			return "fetch_resources_trigger"
+		})
+
+	case string:
+		if msg == "fetch_resources_trigger" {
+			return m, m.fetchResources()
+		}
 
 	case gitStatusMsg:
 		if msg.status != nil {
@@ -439,8 +455,6 @@ func (m appModel) View() string {
 				rightStyle.Render(helpBox))
 
 		} else if completionBox != "" {
-			assistantContent = completionBox
-		} else if helpBox != "" {
 			assistantContent = completionBox
 		} else if helpBox != "" {
 			assistantContent = helpBox

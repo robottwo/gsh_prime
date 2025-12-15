@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -19,13 +20,17 @@ type RepoStatus struct {
 }
 
 func GetStatus(dir string) *RepoStatus {
+	return GetStatusWithContext(context.Background(), dir)
+}
+
+func GetStatusWithContext(ctx context.Context, dir string) *RepoStatus {
 	// check if git is installed
 	if _, err := exec.LookPath("git"); err != nil {
 		return nil
 	}
 
 	// check if inside a git repo
-	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
+	cmd := exec.CommandContext(ctx, "git", "rev-parse", "--show-toplevel")
 	cmd.Dir = dir
 	out, err := cmd.Output()
 	if err != nil {
@@ -34,11 +39,8 @@ func GetStatus(dir string) *RepoStatus {
 	repoPath := strings.TrimSpace(string(out))
 	repoName := filepath.Base(repoPath)
 
-	// Use a timeout context for git operations to avoid hanging
-	// We'll just run the command directly for now as we want to be fast
-
 	// Get status --porcelain=v2 --branch
-	cmd = exec.Command("git", "status", "--porcelain=v2", "--branch")
+	cmd = exec.CommandContext(ctx, "git", "status", "--porcelain=v2", "--branch")
 	cmd.Dir = dir
 	out, err = cmd.Output()
 	if err != nil {
@@ -120,6 +122,7 @@ func parseInt(s string) int {
 
 // Timeout helper could be added if needed, but for now we rely on git being reasonably fast on local repos
 func GetStatusWithTimeout(dir string, timeout time.Duration) *RepoStatus {
-	// This would be better for integration
-	return GetStatus(dir)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	return GetStatusWithContext(ctx, dir)
 }
