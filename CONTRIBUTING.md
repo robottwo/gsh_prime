@@ -66,12 +66,18 @@ make build
 
 ### Git Hooks
 
-We use [pre-commit](https://pre-commit.com/) to ensure code quality. To set up the git hooks:
+We provide a git hook to run linters and tests before commit. To set up the git hooks:
 
-1. Install `pre-commit` (e.g., `pip install pre-commit` or `brew install pre-commit`).
-2. Run `pre-commit install`.
+```bash
+make install-hooks
+```
 
-Alternatively, you can run `./scripts/install-hooks.sh`.
+This will install a `pre-commit` hook that runs:
+- `golangci-lint`
+- `go test`
+- `govulncheck`
+
+Ensure you have the required tools installed via `make tools`.
 
 Useful docs:
 - Getting started: docs/GETTING_STARTED.md
