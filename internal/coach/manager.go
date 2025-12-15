@@ -10,6 +10,7 @@ import (
 	"github.com/atinylittleshell/gsh/internal/history"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -40,7 +41,10 @@ type CoachManager struct {
 }
 
 // NewCoachManager creates a new coach manager
-func NewCoachManager(db *gorm.DB, historyManager *history.HistoryManager, runner *interp.Runner, logger *zap.Logger) (*CoachManager, error) {
+func NewCoachManager(db *gorm.DB, historyManager *history.HistoryManager, runner *interp.Runner, zapLogger *zap.Logger) (*CoachManager, error) {
+	// Configure GORM to use silent logger to avoid printing "record not found" messages
+	db = db.Session(&gorm.Session{Logger: logger.Default.LogMode(logger.Silent)})
+
 	// Run migrations
 	err := db.AutoMigrate(
 		&CoachProfile{},
@@ -78,7 +82,7 @@ func NewCoachManager(db *gorm.DB, historyManager *history.HistoryManager, runner
 		db:             db,
 		historyManager: historyManager,
 		runner:         runner,
-		logger:         logger,
+		logger:         zapLogger,
 		profile:        profile,
 		tipCache:       NewTipCache(50, 24*time.Hour),
 		sessionStart:   time.Now(),
