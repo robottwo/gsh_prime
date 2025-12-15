@@ -74,6 +74,7 @@ type CoachDailyStats struct {
 	CommandsSuccessful int `gorm:"default:0"`
 	CommandsFailed     int `gorm:"default:0"`
 	UniqueCommands     int `gorm:"default:0"`
+	CommandCount       int `gorm:"default:0"` // For calculating average command time
 
 	// Efficiency Stats
 	AliasesUsed     int `gorm:"default:0"`
@@ -226,8 +227,8 @@ type GeneratedTip struct {
 
 // CoachDisplayContent represents content to show in the Assistant Box
 type CoachDisplayContent struct {
-	Type     string  // "tip", "achievement_progress", "achievement_unlock", "challenge", "streak", "insight", "milestone", "fun_fact", "startup"
-	Icon     string  // Emoji
+	Type     string // "tip", "achievement_progress", "achievement_unlock", "challenge", "streak", "insight", "milestone", "fun_fact", "startup"
+	Icon     string // Emoji
 	Title    string
 	Content  string
 	Progress float64 // For progress bars (0-1)
@@ -239,7 +240,7 @@ type CoachDisplayContent struct {
 type Insight struct {
 	ID          string
 	Category    InsightCategory
-	Priority    int    // 1-10, higher = more important
+	Priority    int // 1-10, higher = more important
 	Title       string
 	Description string
 	Command     string

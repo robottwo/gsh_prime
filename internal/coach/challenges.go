@@ -1,6 +1,7 @@
 package coach
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 )
@@ -251,8 +252,8 @@ func FormatDuration(d time.Duration) string {
 }
 
 func formatPlural(n int, unit string) string {
-	if n == 1 {
-		return "1 " + unit
+	if n == 1 || n == -1 {
+		return fmt.Sprintf("%d %s", n, unit)
 	}
-	return string(rune('0'+n/10)) + string(rune('0'+n%10)) + " " + unit + "s"
+	return fmt.Sprintf("%d %ss", n, unit)
 }

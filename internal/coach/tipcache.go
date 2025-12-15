@@ -88,8 +88,8 @@ func (c *TipCache) GetRandom() *GeneratedTip {
 
 // GetByType returns a tip of a specific type
 func (c *TipCache) GetByType(tipType TipType) *GeneratedTip {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	c.checkDayReset()
 
@@ -103,10 +103,13 @@ func (c *TipCache) GetByType(tipType TipType) *GeneratedTip {
 
 // GetHighPriority returns the highest priority tip not shown today
 func (c *TipCache) GetHighPriority() *GeneratedTip {
+	// Acquire full lock for checkDayReset() which mutates shownToday and lastReset
+	c.mu.Lock()
+	c.checkDayReset()
+	// Downgrade to read lock for the iteration to allow concurrent reads
+	c.mu.Unlock()
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-
-	c.checkDayReset()
 
 	var best *GeneratedTip
 	for _, tip := range c.tips {

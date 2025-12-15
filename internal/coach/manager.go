@@ -25,12 +25,12 @@ type CoachManager struct {
 	tipCache *TipCache
 
 	// Session tracking
-	sessionStart      time.Time
-	sessionCommands   int
-	sessionErrors     int
+	sessionStart       time.Time
+	sessionCommands    int
+	sessionErrors      int
 	consecutiveSuccess int
-	lastCommandTime   time.Time
-	todayStats        *CoachDailyStats
+	lastCommandTime    time.Time
+	todayStats         *CoachDailyStats
 
 	// Active challenges
 	dailyChallenges  []CoachChallenge
@@ -121,6 +121,14 @@ func (m *CoachManager) loadTodayStats() {
 			Date:      today,
 		}
 		m.db.Create(stats)
+	} else {
+		// For existing records, initialize CommandCount if it's 0
+		// and AvgCommandTimeMs > 0 (indicating there were commands)
+		if stats.CommandCount == 0 && stats.AvgCommandTimeMs > 0 && stats.CommandsExecuted > 0 {
+			// Estimate CommandCount from CommandsExecuted for backwards compatibility
+			stats.CommandCount = stats.CommandsExecuted
+			m.db.Save(stats)
+		}
 	}
 
 	m.todayStats = stats
@@ -321,7 +329,7 @@ func (m *CoachManager) addXP(baseXP int, source string) {
 			m.profile.Level = newLevel
 			m.profile.Title = GetTitleForLevel(newLevel)
 			m.addNotification("level_up",
-				"You are now Level "+string(rune('0'+newLevel/10))+string(rune('0'+newLevel%10))+" - "+m.profile.Title,
+				"You are now Level "+formatInt(newLevel)+" - "+m.profile.Title,
 				"⭐", 0)
 		}
 	}
@@ -358,12 +366,18 @@ func (m *CoachManager) updateDailyStats(command string, success bool, durationMs
 		m.todayStats.AliasesUsed++
 	}
 
-	// Update average command time
-	if m.todayStats.AvgCommandTimeMs == 0 {
+	// Update average command time using incremental formula
+	m.todayStats.CommandCount++
+	if m.todayStats.CommandCount == 1 {
+		// First command, set average to its duration
 		m.todayStats.AvgCommandTimeMs = int(durationMs)
 	} else {
-		// Running average
-		m.todayStats.AvgCommandTimeMs = (m.todayStats.AvgCommandTimeMs + int(durationMs)) / 2
+		// Incremental average: new_avg = old_avg + (new_value - old_avg) / count
+		oldAvg := float64(m.todayStats.AvgCommandTimeMs)
+		newValue := float64(durationMs)
+		count := float64(m.todayStats.CommandCount)
+		newAvg := oldAvg + (newValue-oldAvg)/count
+		m.todayStats.AvgCommandTimeMs = int(newAvg)
 	}
 
 	// Track fastest command

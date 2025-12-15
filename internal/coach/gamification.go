@@ -2,6 +2,7 @@ package coach
 
 import (
 	"math"
+	"sort"
 	"time"
 )
 
@@ -20,11 +21,25 @@ var LevelTitles = map[int]string{
 // GetTitleForLevel returns the title for a given level
 func GetTitleForLevel(level int) string {
 	title := "Shell Novice"
-	for lvl, t := range LevelTitles {
+
+	// Collect map keys into a slice
+	keys := make([]int, 0, len(LevelTitles))
+	for lvl := range LevelTitles {
+		keys = append(keys, lvl)
+	}
+
+	// Sort keys in ascending order
+	sort.Ints(keys)
+
+	// Find the highest key that is <= level
+	for _, lvl := range keys {
 		if level >= lvl {
-			title = t
+			title = LevelTitles[lvl]
+		} else {
+			break // Since keys are sorted, we can break early
 		}
 	}
+
 	return title
 }
 
@@ -104,10 +119,10 @@ func PrestigeMultiplier(prestige int) float64 {
 
 // XPReward represents a breakdown of XP earned
 type XPReward struct {
-	Base            int
-	StreakBonus     int
-	PrestigeBonus   int
-	Total           int
+	Base             int
+	StreakBonus      int
+	PrestigeBonus    int
+	Total            int
 	StreakMultiplier float64
 }
 
@@ -123,25 +138,25 @@ func CalculateXPReward(baseXP int, streakDays int, prestige int) XPReward {
 	prestigeBonus := total - withStreak
 
 	return XPReward{
-		Base:            baseXP,
-		StreakBonus:     streakBonus,
-		PrestigeBonus:   prestigeBonus,
-		Total:           total,
+		Base:             baseXP,
+		StreakBonus:      streakBonus,
+		PrestigeBonus:    prestigeBonus,
+		Total:            total,
 		StreakMultiplier: streakMult,
 	}
 }
 
 // CommandXPValue returns base XP for various command activities
 type CommandXPValue struct {
-	SuccessfulCommand int
-	UsedAlias         int
-	UsedPrediction    int
-	FastCommand       int // Under 50ms
-	FirstCommandOfDay int
+	SuccessfulCommand  int
+	UsedAlias          int
+	UsedPrediction     int
+	FastCommand        int // Under 50ms
+	FirstCommandOfDay  int
 	FirstCommandOfHour int
-	NewCommandUsed    int
-	PipelineUsed      int
-	NoErrorStreak10   int
+	NewCommandUsed     int
+	PipelineUsed       int
+	NoErrorStreak10    int
 }
 
 // DefaultCommandXP returns default XP values
@@ -231,7 +246,10 @@ func IsStreakActive(lastActive time.Time) bool {
 	lastActiveDay := time.Date(lastActive.Year(), lastActive.Month(), lastActive.Day(), 0, 0, 0, 0, lastActive.Location())
 
 	// Streak is active if last active was today or yesterday
-	daysSince := int(today.Sub(lastActiveDay).Hours() / 24)
+	daysSince := 0
+	for d := lastActiveDay; d.Before(today); d = d.AddDate(0, 0, 1) {
+		daysSince++
+	}
 	return daysSince <= 1
 }
 
@@ -245,7 +263,10 @@ func CanContinueStreak(lastActive time.Time) bool {
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	lastActiveDay := time.Date(lastActive.Year(), lastActive.Month(), lastActive.Day(), 0, 0, 0, 0, lastActive.Location())
 
-	daysSince := int(today.Sub(lastActiveDay).Hours() / 24)
+	daysSince := 0
+	for d := lastActiveDay; d.Before(today); d = d.AddDate(0, 0, 1) {
+		daysSince++
+	}
 
 	if daysSince == 0 {
 		return true // Same day
@@ -270,7 +291,10 @@ func CalculateNewStreak(currentStreak int, lastActive time.Time, useFreeze bool,
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
 	lastActiveDay := time.Date(lastActive.Year(), lastActive.Month(), lastActive.Day(), 0, 0, 0, 0, lastActive.Location())
 
-	daysSince := int(today.Sub(lastActiveDay).Hours() / 24)
+	daysSince := 0
+	for d := lastActiveDay; d.Before(today); d = d.AddDate(0, 0, 1) {
+		daysSince++
+	}
 
 	switch daysSince {
 	case 0:
@@ -305,12 +329,12 @@ func StreakFreezesEarned(currentStreak int) int {
 
 // LevelUpInfo contains information about a level up
 type LevelUpInfo struct {
-	OldLevel  int
-	NewLevel  int
-	OldTitle  string
-	NewTitle  string
-	XPToNext  int
-	Unlocks   []string // Features unlocked at this level
+	OldLevel int
+	NewLevel int
+	OldTitle string
+	NewTitle string
+	XPToNext int
+	Unlocks  []string // Features unlocked at this level
 }
 
 // CheckLevelUp checks if user leveled up and returns info
