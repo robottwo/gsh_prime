@@ -225,10 +225,8 @@ type Model struct {
 	selectedValueIndex int
 
 	// Reverse search state
-	inReverseSearch         bool
-	reverseSearchQuery      string
-	reverseSearchMatches    []int
-	reverseSearchMatchIndex int
+	inReverseSearch    bool
+	reverseSearchQuery string
 
 	// Rich history search
 	historyItems       []HistoryItem
