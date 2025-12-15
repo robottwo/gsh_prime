@@ -371,7 +371,7 @@ func (m *CoachManager) updateDailyStats(command string, success bool, durationMs
 	hour := time.Now().Hour()
 	var hourly [24]int
 	if m.todayStats.HourlyActivity != "" {
-		json.Unmarshal([]byte(m.todayStats.HourlyActivity), &hourly)
+		_ = json.Unmarshal([]byte(m.todayStats.HourlyActivity), &hourly)
 	}
 	hourly[hour]++
 	hourlyJSON, _ := json.Marshal(hourly)
