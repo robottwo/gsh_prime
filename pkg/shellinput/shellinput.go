@@ -924,12 +924,13 @@ func (m Model) View() string {
 		matchText := ""
 		prefix := "(reverse-i-search)"
 
-		if len(m.reverseSearchMatches) > 0 {
-			// Ensure index is within bounds
-			if m.reverseSearchMatchIndex < len(m.reverseSearchMatches) {
-				matchIndex := m.reverseSearchMatches[m.reverseSearchMatchIndex]
-				if matchIndex >= 0 && matchIndex < len(m.values) {
-					matchText = string(m.values[matchIndex])
+		// Use rich history state to determine if there are matches and what the selected one is
+		if len(m.historySearchState.filteredIndices) > 0 {
+			selectedIdx := m.historySearchState.selected
+			if selectedIdx >= 0 && selectedIdx < len(m.historySearchState.filteredIndices) {
+				originalIdx := m.historySearchState.filteredIndices[selectedIdx]
+				if originalIdx >= 0 && originalIdx < len(m.historyItems) {
+					matchText = m.historyItems[originalIdx].Command
 				}
 			}
 		} else if m.reverseSearchQuery != "" {

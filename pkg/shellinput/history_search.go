@@ -265,6 +265,18 @@ func (m *Model) updateHistorySearch() {
 	}
 
 	if query == "" {
+		// Sort candidates if needed
+		switch m.historySearchState.sortMode {
+		case HistorySortRecent:
+			// Candidates are already sorted by recent (index order in historyItems)
+		case HistorySortAlphabetical:
+			sort.SliceStable(candidates, func(i, j int) bool {
+				return m.historyItems[candidates[i]].Command < m.historyItems[candidates[j]].Command
+			})
+		case HistorySortRelevance:
+			// Relevance implies query relevance, but with empty query, fallback to Recent
+		}
+
 		m.historySearchState.filteredIndices = candidates
 		m.historySearchState.selected = 0
 		return
