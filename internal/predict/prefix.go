@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"unicode"
 
 	"github.com/atinylittleshell/gsh/internal/environment"
 	"github.com/atinylittleshell/gsh/internal/history"
@@ -49,34 +48,10 @@ func (p *LLMPrefixPredictor) UpdateContext(context *map[string]string) {
 	p.numHistoryContext = environment.GetContextNumHistoryConcise(p.runner, p.logger)
 }
 
-// isPathLike checks if the last word of the input looks like a path
-func isPathLike(input string) bool {
-	trimmed := strings.TrimRightFunc(input, unicode.IsSpace)
-	if trimmed == "" {
-		return false
-	}
-
-	// Find start of last word
-	lastSpace := strings.LastIndexFunc(trimmed, unicode.IsSpace)
-	lastWord := trimmed
-	if lastSpace >= 0 {
-		lastWord = trimmed[lastSpace+1:]
-	}
-
-	// Check for path separator
-	return strings.Contains(lastWord, "/") || strings.Contains(lastWord, "\\")
-}
-
 func (p *LLMPrefixPredictor) Predict(input string) (string, string, error) {
 	if strings.HasPrefix(input, "#") {
 		// Don't do prediction for agent chat messages
 		p.logger.Debug("skipping prediction for agent chat message")
-		return "", "", nil
-	}
-
-	// Fix for hallucination: Skip prediction if the current word being typed looks like a path
-	if isPathLike(input) {
-		p.logger.Debug("skipping prediction for path-like input")
 		return "", "", nil
 	}
 
