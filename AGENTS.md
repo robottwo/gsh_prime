@@ -2,24 +2,75 @@
 
 ## Git Branch Naming
 
-When using the `submit` tool, ensure the `branch_name` follows the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) types.
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) types for branch names and commit messages.
 
-Format: `<type>/<description>`
+### Format
 
-Allowed types:
-- `feat`: A new feature
-- `fix`: A bug fix
-- `docs`: Documentation only changes
-- `style`: Changes that do not affect the meaning of the code (white-space, formatting, missing semi-colons, etc)
-- `refactor`: A code change that neither fixes a bug nor adds a feature
-- `perf`: A code change that improves performance
-- `test`: Adding missing tests or correcting existing tests
-- `build`: Changes that affect the build system or external dependencies (example scopes: gulp, broccoli, npm)
-- `ci`: Changes to our CI configuration files and scripts (example scopes: Travis, Circle, BrowserStack, SauceLabs)
-- `chore`: Other changes that don't modify src or test files
-- `revert`: Reverts a previous commit
+**Basic:** `<type>/<description>`  
+**With scope:** `<type>(<scope>)/<description>`  
+**Breaking change:** `<type>!: <description>`
 
-Examples:
+### Rules
+
+- **kebab-case** descriptions (50 chars max)
+- Present tense ("add", not "added")
+- Be concise but clear
+
+### Types
+
+- `feat`: New feature
+- `fix`: Bug fix  
+- `docs`: Documentation
+- `style`: Formatting only
+- `refactor`: Code improvement
+- `perf`: Performance boost
+- `test`: Tests
+- `build`: Build system
+- `ci`: CI configuration
+- `chore`: Other changes
+- `revert`: Previous commit
+
+### Scopes (Optional)
+
+**Common scopes:**
+- `auth` - Authentication
+- `ui` - User interface
+- `api` - API endpoints
+- `config` - Configuration
+- `deps` - Dependencies
+- `test` - Testing
+
+### Examples
+
+**Basic:**
 - `feat/user-login`
 - `fix/memory-leak`
 - `docs/update-readme`
+
+**Scoped:**
+- `feat(auth)/oauth-support`
+- `fix(ui)/mobile-layout`
+- `docs(api)/endpoints`
+
+**Breaking:**
+- `feat!: remove-deprecated-api`
+
+### Workflow
+
+1. Create branch per logical work unit
+2. Make focused commits
+3. Follow commit conventions
+4. Push and PR
+5. Delete after merge
+
+### Mistakes to Avoid
+
+❌ `feat/UserLogin` (caps)  
+❌ `fix/memory_leak` (underscores)  
+❌ `feature/login` (wrong type)  
+❌ `feat/very-long-description-exceeding-limit`  
+❌ `fix/` (no description)  
+
+✅ `feat/user-login`  
+✅ `fix/memory-leak`  
+✅ `feat(auth)/oauth`
