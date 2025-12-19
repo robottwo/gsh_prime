@@ -534,3 +534,81 @@ const tipResponseSchema = `{
   "action_type": "string (alias|function|tool|config|learning|none)",
   "based_on": ["array of commands/patterns this tip is based on"]
 }`
+
+// GenerateBatchTipsWithSlowModel generates multiple tips using the slow LLM model
+// This is used for background tip generation that takes user history into account
+func (g *LLMTipGenerator) GenerateBatchTipsWithSlowModel(ctx context.Context, count int) ([]*GeneratedTip, error) {
+	tipContext, err := g.buildTipContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tips, err := g.generateBatchWithSlowLLM(ctx, tipContext, count)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache all
+	for _, tip := range tips {
+		g.cache.Add(tip)
+	}
+
+	return tips, nil
+}
+
+// generateBatchWithSlowLLM generates multiple tips using the slow LLM model
+func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipContext *TipContext, count int) ([]*GeneratedTip, error) {
+	llmClient, modelConfig := utils.GetLLMClient(g.runner, utils.SlowModel)
+
+	prompt := g.buildBatchPrompt(tipContext, count)
+
+	g.logger.Info("Generating tips with slow LLM",
+		zap.String("model", modelConfig.ModelId),
+		zap.Int("count", count))
+
+	request := openai.ChatCompletionRequest{
+		Model: modelConfig.ModelId,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: "system", Content: tipGeneratorSystemPrompt},
+			{Role: "user", Content: prompt},
+		},
+		ResponseFormat: &openai.ChatCompletionResponseFormat{
+			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
+		},
+	}
+
+	if modelConfig.Temperature != nil {
+		request.Temperature = float32(*modelConfig.Temperature)
+	}
+
+	response, err := llmClient.CreateChatCompletion(ctx, request)
+	if err != nil {
+		g.logger.Error("Slow LLM request failed", zap.Error(err))
+		return nil, err
+	}
+
+	if len(response.Choices) == 0 {
+		return nil, fmt.Errorf("no response from slow LLM")
+	}
+
+	var batchResponse struct {
+		Tips []*GeneratedTip `json:"tips"`
+	}
+
+	if err := json.Unmarshal([]byte(response.Choices[0].Message.Content), &batchResponse); err != nil {
+		g.logger.Error("Failed to parse slow LLM response", zap.Error(err),
+			zap.String("content", response.Choices[0].Message.Content))
+		return nil, err
+	}
+
+	for _, tip := range batchResponse.Tips {
+		tip.ID = GenerateTipID()
+		tip.GeneratedAt = time.Now()
+		tip.ExpiresAt = time.Now().Add(7 * 24 * time.Hour) // LLM tips expire after 7 days
+	}
+
+	g.logger.Info("Successfully generated tips with slow LLM",
+		zap.Int("generated", len(batchResponse.Tips)))
+
+	return batchResponse.Tips, nil
+}
