@@ -133,18 +133,18 @@ func TestContextSensitivePartialCompletions(t *testing.T) {
 	model.SetValue("@/m")
 	model.SetCursor(3) // cursor at end of "@/m"
 
-// TAB should extend to the shared prefix (filtering based on 'm')
-msg := tea.KeyMsg{Type: tea.KeyTab}
-updatedModel, _ := model.Update(msg)
-assert.Equal(t, "@/macro", updatedModel.Value(), "TAB should extend '@/m to shared prefix '@/macro'")
+	// TAB should extend to the shared prefix (filtering based on 'm')
+	msg := tea.KeyMsg{Type: tea.KeyTab}
+	updatedModel, _ := model.Update(msg)
+	assert.Equal(t, "@/macro", updatedModel.Value(), "TAB should extend '@/m to shared prefix '@/macro'")
 
-// Test partial @! completion
-model.SetValue("@!g")
-model.SetCursor(3) // cursor at end of "@!g"
+	// Test partial @! completion
+	model.SetValue("@!g")
+	model.SetCursor(3) // cursor at end of "@!g"
 
-// TAB should extend to the shared prefix (filtering based on 'g')
-updatedModel, _ = model.Update(msg)
-assert.Equal(t, "@!gsh_", updatedModel.Value(), "TAB should extend '@!g to shared prefix '@!gsh_'")
+	// TAB should extend to the shared prefix (filtering based on 'g')
+	updatedModel, _ = model.Update(msg)
+	assert.Equal(t, "@!gsh_", updatedModel.Value(), "TAB should extend '@!g to shared prefix '@!gsh_'")
 }
 
 func TestContextSensitiveCompletionEdgeCases(t *testing.T) {
@@ -167,8 +167,8 @@ func TestContextSensitiveCompletionEdgeCases(t *testing.T) {
 	model.SetValue("@/")
 	model.SetCursor(2)
 
-updatedModel, _ = model.Update(msg)
-assert.Equal(t, "@/macro", updatedModel.Value(), "Should extend empty '@/ to shared macro prefix")
+	updatedModel, _ = model.Update(msg)
+	assert.Equal(t, "@/macro", updatedModel.Value(), "Should extend empty '@/ to shared macro prefix")
 	assert.True(t, updatedModel.completion.active, "Completion should be active")
 
 	// Test single match
