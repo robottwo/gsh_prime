@@ -415,7 +415,9 @@ func (m appModel) View() string {
 		}
 
 		completionBox := m.textInput.CompletionBoxView(availableHeight, completionWidth)
-		historyBox := m.textInput.HistorySearchBoxView(availableHeight, max(0, m.textInput.Width-2))
+		// History box width must account for box border (2) and content padding (2+2)
+		// to match the contentWidth used for word wrapping later (boxWidth-4)
+		historyBox := m.textInput.HistorySearchBoxView(availableHeight, max(0, m.textInput.Width-6))
 
 		if historyBox != "" {
 			assistantContent = historyBox

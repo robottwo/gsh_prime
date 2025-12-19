@@ -181,11 +181,27 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 
 		// Timestamp
 		timeStr := humanize.Time(item.Timestamp)
-		if len(timeStr) > timeWidth {
-			timeStr = timeStr[:timeWidth]
+		timeVisualWidth := ansi.PrintableRuneWidth(timeStr)
+		if timeVisualWidth > timeWidth {
+			// Truncate based on visual width
+			runes := []rune(timeStr)
+			truncatedWidth := 0
+			truncateAt := 0
+			for i, r := range runes {
+				charWidth := ansi.PrintableRuneWidth(string(r))
+				if truncatedWidth+charWidth > timeWidth {
+					break
+				}
+				truncatedWidth += charWidth
+				truncateAt = i + 1
+			}
+			timeStr = string(runes[:truncateAt])
+			timeVisualWidth = truncatedWidth
 		}
-		// Pad timestamp
-		timeStr = fmt.Sprintf("%-*s", timeWidth, timeStr)
+		// Pad timestamp using visual width
+		if timeVisualWidth < timeWidth {
+			timeStr = timeStr + strings.Repeat(" ", timeWidth-timeVisualWidth)
+		}
 
 		// Command
 		// Calculate available width for command
@@ -196,16 +212,26 @@ func (m Model) HistorySearchBoxView(height, width int) string {
 		}
 
 		cmdStr := item.Command
-		// Simple truncation
-		if ansi.PrintableRuneWidth(cmdStr) > cmdWidth {
-			// truncate
+		cmdVisualWidth := ansi.PrintableRuneWidth(cmdStr)
+		if cmdVisualWidth > cmdWidth {
+			// Truncate based on visual width, leaving room for ellipsis
 			runes := []rune(cmdStr)
-			if len(runes) > cmdWidth-1 {
-				cmdStr = string(runes[:cmdWidth-1]) + "…"
+			truncatedWidth := 0
+			truncateAt := 0
+			for i, r := range runes {
+				charWidth := ansi.PrintableRuneWidth(string(r))
+				if truncatedWidth+charWidth > cmdWidth-1 {
+					break
+				}
+				truncatedWidth += charWidth
+				truncateAt = i + 1
 			}
-		} else {
-			// pad
-			cmdStr = fmt.Sprintf("%-*s", cmdWidth, cmdStr)
+			cmdStr = string(runes[:truncateAt]) + "…"
+			cmdVisualWidth = truncatedWidth + 1 // +1 for ellipsis
+		}
+		// Pad command using visual width
+		if cmdVisualWidth < cmdWidth {
+			cmdStr = cmdStr + strings.Repeat(" ", cmdWidth-cmdVisualWidth)
 		}
 
 		line := ""
