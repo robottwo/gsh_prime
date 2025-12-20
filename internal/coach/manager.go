@@ -1120,8 +1120,10 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	m.logger.Info("Resetting and regenerating all tips")
 
 	// Delete all existing tips from database
+	fmt.Print("  [1/4] Clearing existing tips...")
 	result := m.db.Where("1 = 1").Delete(&CoachDatabaseTip{})
 	deletedCount := result.RowsAffected
+	fmt.Printf(" deleted %d tips\n", deletedCount)
 	m.logger.Info("Deleted existing tips", zap.Int64("count", deletedCount))
 
 	// Reset the seeded flag so static tips get re-added
@@ -1129,19 +1131,23 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	m.db.Save(m.profile)
 
 	// Re-seed static tips
+	fmt.Print("  [2/4] Re-adding static tips...")
 	m.seedStaticTips()
+	fmt.Printf(" added %d static tips\n", len(StaticTips))
 
-	// Generate 50 new tips using the slow LLM with a 10-minute timeout
+	// Generate 50 new tips using the slow LLM with a 1-minute timeout
+	fmt.Println("  [3/4] Analyzing your command history...")
+	fmt.Println("  [4/4] Generating personalized tips with AI (up to 1 min)...")
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
 	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 50)
 	if err != nil {
 		// Check for timeout or cancellation errors
 		if errors.Is(err, context.DeadlineExceeded) {
-			m.logger.Warn("LLM tip generation timed out after 10 minutes", zap.Error(err))
-			return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nAI tip generation timed out after 10 minutes. Try again later.", deletedCount, len(StaticTips))
+			m.logger.Warn("LLM tip generation timed out after 1 minute", zap.Error(err))
+			return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nAI tip generation timed out after 1 minute. Try again later.", deletedCount, len(StaticTips))
 		}
 		if errors.Is(err, context.Canceled) {
 			m.logger.Warn("LLM tip generation was canceled", zap.Error(err))
@@ -1152,6 +1158,7 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	}
 
 	// Store generated tips in database
+	fmt.Printf("        Generated %d tips, saving to database...\n", len(tips))
 	storedCount := 0
 	for _, tip := range tips {
 		dbTip := CoachDatabaseTip{
@@ -1189,6 +1196,7 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 		zap.Int("static_added", len(StaticTips)),
 		zap.Int("llm_generated", storedCount))
 
-	return fmt.Sprintf("Tips reset complete!\n- Deleted: %d old tips\n- Added: %d static tips\n- Generated: %d AI tips based on your history\n\nTotal: %d tips now available",
+	fmt.Println()
+	return fmt.Sprintf("Done! Tips reset complete.\n  - Deleted: %d old tips\n  - Added: %d static tips\n  - Generated: %d AI tips based on your history\n  - Total: %d tips now available",
 		deletedCount, len(StaticTips), storedCount, len(StaticTips)+storedCount)
 }

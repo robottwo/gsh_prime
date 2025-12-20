@@ -741,22 +741,16 @@ func (p *ShellCompletionProvider) getBuiltinCommandHelp(command string) string {
 	case "reload-subagents":
 		return "**@!reload-subagents** - Reload subagent configurations from disk\n\nRefreshes the subagent configurations by rescanning the .claude/agents/ and .roo/modes/ directories."
 	case "coach":
-		return "**@!coach** - View your productivity dashboard\n\nShows your level, XP progress, current streak, daily stats, and challenge progress. Gamify your shell experience!"
-	case "coach-stats":
-		return "**@!coach-stats** - View detailed statistics\n\nShows comprehensive stats including profile info, multipliers, and today's activity breakdown."
-	case "coach-achievements":
-		return "**@!coach-achievements** - Browse your achievements\n\nView all achievements organized by category with unlock progress and tier levels."
-	case "coach-challenges":
-		return "**@!coach-challenges** - View active challenges\n\nShows your daily and weekly challenges with progress bars and XP rewards."
+		return "**@!coach [subcommand]** - Productivity coach dashboard\n\nSubcommands:\n• **@!coach** or **@!coach dashboard** - View main dashboard\n• **@!coach stats** - View detailed statistics\n• **@!coach achievements** - Browse achievements\n• **@!coach challenges** - View active challenges\n• **@!coach tips** - View all tips\n• **@!coach reset-tips** - Regenerate tips from history"
 	case "":
-		return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach** - View productivity dashboard\n• **@!coach-stats** - View detailed statistics\n• **@!coach-achievements** - Browse achievements\n• **@!coach-challenges** - View active challenges"
+		return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)"
 	default:
 		// Check for partial matches
-		builtinCommands := []string{"config", "new", "tokens", "subagents", "reload-subagents", "coach", "coach-stats", "coach-achievements", "coach-challenges"}
+		builtinCommands := []string{"config", "new", "tokens", "subagents", "reload-subagents", "coach"}
 		for _, cmd := range builtinCommands {
 			if strings.HasPrefix(cmd, command) {
 				// Partial match, show general help
-				return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach** - View productivity dashboard\n• **@!coach-stats** - View detailed statistics\n• **@!coach-achievements** - Browse achievements\n• **@!coach-challenges** - View active challenges"
+				return "**Agent Controls** - Built-in commands for managing the agent\n\nAvailable commands:\n• **@!config** - Open the configuration menu\n• **@!new** - Start a new chat session\n• **@!tokens** - Show token usage statistics\n• **@!subagents [name]** - List subagents or show details\n• **@!reload-subagents** - Reload subagent configurations\n• **@!coach [subcommand]** - Productivity coach (stats, achievements, challenges, tips, reset-tips)"
 			}
 		}
 		return ""
