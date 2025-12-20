@@ -159,10 +159,10 @@ func TestVersionFileIntegrationWithNix(t *testing.T) {
 		// Verify flake.nix references VERSION file
 		assert.Contains(t, flakeContent, "builtins.readFile ./VERSION",
 			"flake.nix should read VERSION file")
-		
-		// Verify version is prefixed with 'v'
-		assert.Contains(t, flakeContent, "v${builtins.readFile ./VERSION}",
-			"flake.nix should prefix VERSION with 'v'")
+
+		// Verify version is conditionally prefixed with 'v' (avoids double-prefixing)
+		assert.Contains(t, flakeContent, `else "v${rawVersion}"`,
+			"flake.nix should conditionally prefix VERSION with 'v'")
 	})
 
 	t.Run("flake.nix version string is properly formatted", func(t *testing.T) {
@@ -174,8 +174,8 @@ func TestVersionFileIntegrationWithNix(t *testing.T) {
 
 		flakeContent := string(content)
 
-		// Should use string interpolation for version
-		assert.Contains(t, flakeContent, "version = ",
+		// Should define a version variable
+		assert.Contains(t, flakeContent, "version =",
 			"flake.nix should define version variable")
 	})
 }
