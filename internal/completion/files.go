@@ -184,9 +184,9 @@ var getFileCompletions fileCompleter = func(prefix string, currentDirectory stri
 		default:
 			// For relative paths, keep them relative
 			if prefixDir == "." {
-				// Check if the original prefix started with "./"
-				if strings.HasPrefix(prefix, "./") {
-					completionPath = "./" + name
+				// Check if the original prefix started with "./" or ".\" (Windows)
+				if strings.HasPrefix(prefix, "./") || strings.HasPrefix(prefix, "."+string(os.PathSeparator)) {
+					completionPath = "." + string(os.PathSeparator) + name
 				} else {
 					completionPath = name
 				}
