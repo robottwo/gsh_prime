@@ -1,6 +1,8 @@
-# Multi-Platform Packaging Plan for gsh
+# Multi-Platform Packaging Plan for gsh_prime
 
-This document outlines the plan to provide gsh packages for high-priority platforms, enabling users to install gsh using their native package managers.
+This document outlines the plan to provide gsh_prime packages for high-priority platforms, enabling users to install gsh using their native package managers.
+
+> **Note**: This plan is for the `robottwo/gsh_prime` fork, distributed independently from the upstream `atinylittleshell/gsh` project.
 
 ## Table of Contents
 
@@ -83,9 +85,9 @@ Publish to Winget, Scoop, and Chocolatey.
 nfpms:
   - id: packages
     package_name: gsh
-    vendor: atinylittleshell
-    homepage: https://github.com/atinylittleshell/gsh
-    maintainer: atinylittleshell <shell@atinylittleshell.me>
+    vendor: robottwo
+    homepage: https://github.com/robottwo/gsh_prime
+    maintainer: robottwo <robottwo@users.noreply.github.com>
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     formats:
@@ -121,11 +123,11 @@ nfpms:
 
 ```bash
 # Direct download from GitHub Releases
-wget https://github.com/atinylittleshell/gsh/releases/download/v0.26.0/gsh_0.26.0_amd64.deb
+wget https://github.com/robottwo/gsh_prime/releases/download/v0.26.0/gsh_0.26.0_amd64.deb
 sudo dpkg -i gsh_0.26.0_amd64.deb
 
 # Or with PPA (after setup)
-sudo add-apt-repository ppa:atinylittleshell/gsh
+sudo add-apt-repository ppa:robottwo/gsh
 sudo apt update
 sudo apt install gsh
 ```
@@ -147,10 +149,10 @@ The same NFPM configuration above generates both `.deb` and `.rpm`.
 
 ```bash
 # Direct download from GitHub Releases
-sudo rpm -i https://github.com/atinylittleshell/gsh/releases/download/v0.26.0/gsh-0.26.0-1.x86_64.rpm
+sudo rpm -i https://github.com/robottwo/gsh_prime/releases/download/v0.26.0/gsh-0.26.0-1.x86_64.rpm
 
 # Or with COPR (after setup)
-sudo dnf copr enable atinylittleshell/gsh
+sudo dnf copr enable robottwo/gsh
 sudo dnf install gsh
 ```
 
@@ -166,41 +168,41 @@ sudo dnf install gsh
 # Add to .goreleaser.yaml
 scoops:
   - name: gsh
-    homepage: https://github.com/atinylittleshell/gsh
+    homepage: https://github.com/robottwo/gsh_prime
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     repository:
-      owner: atinylittleshell
+      owner: robottwo
       name: scoop-bucket
       token: "{{ .Env.GITHUB_TOKEN }}"
 ```
 
 **Setup Required:**
-- Create a `scoop-bucket` repository at `github.com/atinylittleshell/scoop-bucket`
+- Create a `scoop-bucket` repository at `github.com/robottwo/scoop-bucket`
 
 **User Installation:**
 ```powershell
-scoop bucket add gsh https://github.com/atinylittleshell/scoop-bucket
+scoop bucket add gsh https://github.com/robottwo/scoop-bucket
 scoop install gsh
 ```
 
 #### 3b. Winget (Windows Package Manager)
 
-**Manifest File: `packaging/winget/atinylittleshell.gsh.yaml`**
+**Manifest File: `packaging/winget/robottwo.gsh.yaml`**
 
 ```yaml
-PackageIdentifier: atinylittleshell.gsh
+PackageIdentifier: robottwo.gsh
 PackageVersion: 0.26.0
 PackageLocale: en-US
-Publisher: atinylittleshell
+Publisher: robottwo
 PackageName: gsh
 License: GPL-3.0-or-later
 ShortDescription: A modern, POSIX-compatible, generative shell
-PackageUrl: https://github.com/atinylittleshell/gsh
+PackageUrl: https://github.com/robottwo/gsh_prime
 Installers:
   - Architecture: x64
     InstallerType: zip
-    InstallerUrl: https://github.com/atinylittleshell/gsh/releases/download/v0.26.0/gsh_Windows_x86_64.zip
+    InstallerUrl: https://github.com/robottwo/gsh_prime/releases/download/v0.26.0/gsh_Windows_x86_64.zip
     InstallerSha256: <sha256>
 ManifestType: singleton
 ManifestVersion: 1.4.0
@@ -210,7 +212,7 @@ ManifestVersion: 1.4.0
 
 **User Installation:**
 ```powershell
-winget install atinylittleshell.gsh
+winget install robottwo.gsh
 ```
 
 #### 3c. Chocolatey
@@ -224,10 +226,10 @@ winget install atinylittleshell.gsh
     <id>gsh</id>
     <version>0.26.0</version>
     <title>gsh - Generative Shell</title>
-    <authors>atinylittleshell</authors>
-    <owners>atinylittleshell</owners>
-    <licenseUrl>https://github.com/atinylittleshell/gsh/blob/main/LICENSE</licenseUrl>
-    <projectUrl>https://github.com/atinylittleshell/gsh</projectUrl>
+    <authors>robottwo</authors>
+    <owners>robottwo</owners>
+    <licenseUrl>https://github.com/robottwo/gsh_prime/blob/main/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/robottwo/gsh_prime</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A modern, POSIX-compatible, generative shell with AI capabilities</description>
     <tags>shell cli terminal ai llm</tags>
@@ -243,7 +245,7 @@ winget install atinylittleshell.gsh
 ```powershell
 $ErrorActionPreference = 'Stop'
 $toolsDir = "$(Split-Path -parent $MyInvocation.MyCommand.Definition)"
-$url64 = 'https://github.com/atinylittleshell/gsh/releases/download/v0.26.0/gsh_Windows_x86_64.zip'
+$url64 = 'https://github.com/robottwo/gsh_prime/releases/download/v0.26.0/gsh_Windows_x86_64.zip'
 
 $packageArgs = @{
   packageName   = $env:ChocolateyPackageName
@@ -342,7 +344,7 @@ jobs:
     steps:
       - uses: vedantmgoyal9/winget-releaser@main
         with:
-          identifier: atinylittleshell.gsh
+          identifier: robottwo.gsh
           version: ${{ needs.release-please.outputs.tag_name }}
           token: ${{ secrets.WINGET_TOKEN }}
 ```
@@ -392,9 +394,9 @@ archives:
 nfpms:
   - id: packages
     package_name: gsh
-    vendor: atinylittleshell
-    homepage: https://github.com/atinylittleshell/gsh
-    maintainer: atinylittleshell <shell@atinylittleshell.me>
+    vendor: robottwo
+    homepage: https://github.com/robottwo/gsh_prime
+    maintainer: robottwo <robottwo@users.noreply.github.com>
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     formats:
@@ -429,16 +431,16 @@ changelog:
 # Homebrew
 brews:
   - name: gsh
-    homepage: https://github.com/atinylittleshell/gsh
+    homepage: https://github.com/robottwo/gsh_prime
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     directory: Formula
     commit_author:
-      name: atinylittleshell
-      email: shell@atinylittleshell.me
+      name: robottwo
+      email: robottwo@users.noreply.github.com
     repository:
-      owner: atinylittleshell
-      name: gsh
+      owner: robottwo
+      name: homebrew-gsh
       token: "{{ .Env.GITHUB_TOKEN }}"
     install: |
       bin.install "gsh"
@@ -448,27 +450,27 @@ brews:
 # Scoop (Windows)
 scoops:
   - name: gsh
-    homepage: https://github.com/atinylittleshell/gsh
+    homepage: https://github.com/robottwo/gsh_prime
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     repository:
-      owner: atinylittleshell
+      owner: robottwo
       name: scoop-bucket
       token: "{{ .Env.GITHUB_TOKEN }}"
 
 # AUR binary package
 aurs:
   - name: gsh-bin
-    homepage: https://github.com/atinylittleshell/gsh
+    homepage: https://github.com/robottwo/gsh_prime
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     maintainers:
-      - "atinylittleshell <shell@atinylittleshell.me>"
+      - "robottwo <robottwo@users.noreply.github.com>"
     private_key: "{{ .Env.AUR_PRIVATE_KEY }}"
     git_url: "ssh://aur@aur.archlinux.org/gsh-bin.git"
     commit_author:
-      name: atinylittleshell
-      email: shell@atinylittleshell.me
+      name: robottwo
+      email: robottwo@users.noreply.github.com
     package: |-
       install -Dm755 "./gsh" "${pkgdir}/usr/bin/gsh"
       install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/gsh/LICENSE"
@@ -476,17 +478,16 @@ aurs:
 # AUR source package
 aur_sources:
   - name: gsh
-    homepage: https://github.com/atinylittleshell/gsh
+    homepage: https://github.com/robottwo/gsh_prime
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     maintainers:
-      - "atinylittleshell <shell@atinylittleshell.me>"
-      - "Vitalii Kuzhdin <vitaliikuzhdin@gmail.com>"
+      - "robottwo <robottwo@users.noreply.github.com>"
     private_key: "{{ .Env.AUR_PRIVATE_KEY }}"
     git_url: "ssh://aur@aur.archlinux.org/gsh.git"
     commit_author:
-      name: atinylittleshell
-      email: shell@atinylittleshell.me
+      name: robottwo
+      email: robottwo@users.noreply.github.com
     prepare: |-
       cd "${srcdir}/${_pkgsrc}"
       go mod download
@@ -511,7 +512,7 @@ aur_sources:
 After implementation:
 
 ```
-gsh/
+gsh_prime/
 ├── .goreleaser.yaml           # Enhanced with NFPM + Scoop
 ├── packaging/
 │   ├── chocolatey/
@@ -520,7 +521,7 @@ gsh/
 │   │       ├── chocolateyinstall.ps1
 │   │       └── chocolateyuninstall.ps1
 │   └── winget/
-│       └── atinylittleshell.gsh.yaml
+│       └── robottwo.gsh.yaml
 ├── Formula/
 │   └── gsh.rb                 # Auto-generated by GoReleaser
 └── flake.nix                  # Existing Nix flake
@@ -533,7 +534,8 @@ gsh/
 ### Phase 1: GoReleaser Enhancement
 - [ ] Add NFPM configuration for .deb and .rpm to `.goreleaser.yaml`
 - [ ] Add Scoop configuration to `.goreleaser.yaml`
-- [ ] Create `scoop-bucket` repository on GitHub
+- [ ] Create `robottwo/scoop-bucket` repository on GitHub
+- [ ] Create `robottwo/homebrew-gsh` repository on GitHub (for Homebrew tap)
 - [ ] Test local builds with `goreleaser release --snapshot --clean`
 
 ### Phase 2: Debian/Ubuntu
@@ -569,34 +571,34 @@ After implementation, users can install gsh using:
 
 ```bash
 # macOS
-brew install atinylittleshell/gsh/gsh
+brew install robottwo/gsh/gsh
 
 # Ubuntu/Debian
-wget https://github.com/atinylittleshell/gsh/releases/latest/download/gsh_amd64.deb
+wget https://github.com/robottwo/gsh_prime/releases/latest/download/gsh_amd64.deb
 sudo dpkg -i gsh_amd64.deb
 
 # Fedora/RHEL/CentOS
-sudo rpm -i https://github.com/atinylittleshell/gsh/releases/latest/download/gsh.x86_64.rpm
+sudo rpm -i https://github.com/robottwo/gsh_prime/releases/latest/download/gsh.x86_64.rpm
 
 # Arch Linux
 yay -S gsh          # Source build
 yay -S gsh-bin      # Pre-built binary
 
 # NixOS / Nix
-nix run github:atinylittleshell/gsh
+nix run github:robottwo/gsh_prime
 
 # Windows (Scoop)
-scoop bucket add gsh https://github.com/atinylittleshell/scoop-bucket
+scoop bucket add gsh https://github.com/robottwo/scoop-bucket
 scoop install gsh
 
 # Windows (Winget)
-winget install atinylittleshell.gsh
+winget install robottwo.gsh
 
 # Windows (Chocolatey)
 choco install gsh
 
 # Direct download (any platform)
-# https://github.com/atinylittleshell/gsh/releases
+# https://github.com/robottwo/gsh_prime/releases
 ```
 
 ---
