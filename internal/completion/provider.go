@@ -219,6 +219,34 @@ func (p *ShellCompletionProvider) checkSpecialPrefixes(line string, pos int) []s
 
 	currentWord := line[start:end]
 
+	// Check for @!coach subcommand completion (when line starts with "@!coach " and we're past it)
+	trimmedLine := strings.TrimSpace(line[:pos])
+	if strings.HasPrefix(trimmedLine, "@!coach") && (trimmedLine == "@!coach" || strings.HasPrefix(trimmedLine, "@!coach ")) {
+		// Extract the part after "@!coach "
+		afterCoach := ""
+		if idx := strings.Index(line, "@!coach "); idx >= 0 {
+			afterCoach = strings.TrimSpace(line[idx+8 : pos])
+		}
+
+		// Only provide subcommand completions if we're past "@!coach " and the current word isn't a special prefix
+		if start >= 7 && !strings.HasPrefix(currentWord, "@") {
+			completions := p.getCoachSubcommandCompletions(afterCoach)
+			if len(completions) > 0 {
+				// Build the proper prefix for the current line context
+				var linePrefix string
+				if start > 0 {
+					linePrefix = line[:start]
+				}
+				// Return completions with line prefix
+				result := make([]shellinput.CompletionCandidate, len(completions))
+				for i, c := range completions {
+					result[i] = shellinput.CompletionCandidate{Value: linePrefix + c}
+				}
+				return result
+			}
+		}
+	}
+
 	// Check if the current word starts with @/, @!, or @
 	if strings.HasPrefix(currentWord, "@/") {
 		completions := p.getMacroCompletions(currentWord)
@@ -633,6 +661,28 @@ func (p *ShellCompletionProvider) getBuiltinCommandCompletions(prefix string) []
 	}
 
 	// Sort alphabetically for consistent ordering
+	sort.Strings(completions)
+	return completions
+}
+
+// getCoachSubcommandCompletions returns completions for @!coach subcommands
+func (p *ShellCompletionProvider) getCoachSubcommandCompletions(prefix string) []string {
+	subcommands := []string{
+		"stats",
+		"achievements",
+		"challenges",
+		"tips",
+		"reset-tips",
+		"dashboard",
+	}
+
+	var completions []string
+	for _, cmd := range subcommands {
+		if strings.HasPrefix(cmd, prefix) {
+			completions = append(completions, cmd)
+		}
+	}
+
 	sort.Strings(completions)
 	return completions
 }
