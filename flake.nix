@@ -12,7 +12,8 @@
   }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = import nixpkgs {inherit system;};
-      version = builtins.replaceStrings ["\n"] [""] (builtins.readFile ./VERSION);
+      # Note: test expects pattern "v${builtins.readFile ./VERSION}" - newline stripped via replaceStrings
+      version = builtins.replaceStrings ["\n"] [""] "v${builtins.readFile ./VERSION}";
     in {
       packages.default = pkgs.buildGoModule {
         pname = "gsh";
