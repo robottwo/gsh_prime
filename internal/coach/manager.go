@@ -1120,50 +1120,40 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	m.logger.Info("Resetting and regenerating all tips")
 
 	// Step 1: Delete existing tips
-	progress := NewProgressIndicator("[1/4] Clearing existing tips...")
+	progress := NewProgressIndicator("[1/3] Clearing existing tips...")
 	progress.Start()
 	result := m.db.Where("1 = 1").Delete(&CoachDatabaseTip{})
 	deletedCount := result.RowsAffected
-	progress.StopWithMessage(fmt.Sprintf("  [1/4] Clearing existing tips... deleted %d tips", deletedCount))
+	progress.StopWithMessage(fmt.Sprintf("  [1/3] Clearing existing tips... deleted %d tips", deletedCount))
 	m.logger.Info("Deleted existing tips", zap.Int64("count", deletedCount))
 
-	// Reset the seeded flag so static tips get re-added
-	m.profile.TipsSeeded = false
-	m.db.Save(m.profile)
-
-	// Step 2: Re-seed static tips
-	progress = NewProgressIndicator("[2/4] Re-adding static tips...")
-	progress.Start()
-	m.seedStaticTips()
-	progress.StopWithMessage(fmt.Sprintf("  [2/4] Re-adding static tips... added %d tips", len(StaticTips)))
-
-	// Step 3 & 4: Generate new tips using the slow LLM with a 2-minute timeout
-	progress = NewProgressIndicator("[3/4] Analyzing command history & generating tips (up to 2 min)...")
+	// Step 2: Generate 61 new tips using the slow LLM with a 2-minute timeout
+	progress = NewProgressIndicator("[2/3] Analyzing command history & generating 61 tips (up to 2 min)...")
 	progress.Start()
 
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 20)
+	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 61)
 	if err != nil {
 		progress.Stop()
 		// Check for timeout or cancellation errors
 		if errors.Is(err, context.DeadlineExceeded) {
 			m.logger.Warn("LLM tip generation timed out after 2 minutes", zap.Error(err))
-			return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nAI tip generation timed out after 2 minutes. Try again later.", deletedCount, len(StaticTips))
+			return fmt.Sprintf("Reset incomplete. Deleted %d tips.\nAI tip generation timed out after 2 minutes. Try again later.", deletedCount)
 		}
 		if errors.Is(err, context.Canceled) {
 			m.logger.Warn("LLM tip generation was canceled", zap.Error(err))
-			return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nAI tip generation was canceled.", deletedCount, len(StaticTips))
+			return fmt.Sprintf("Reset incomplete. Deleted %d tips.\nAI tip generation was canceled.", deletedCount)
 		}
 		m.logger.Warn("Failed to generate tips with LLM", zap.Error(err))
-		return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nFailed to generate new AI tips: %v", deletedCount, len(StaticTips), err)
+		return fmt.Sprintf("Reset incomplete. Deleted %d tips.\nFailed to generate new AI tips: %v", deletedCount, err)
 	}
-	progress.StopWithMessage(fmt.Sprintf("  [3/4] Generated %d personalized tips", len(tips)))
+	progress.StopWithMessage(fmt.Sprintf("  [2/3] Generated %d personalized tips", len(tips)))
 
-	// Step 4: Store generated tips in database
-	progress = NewProgressIndicator("[4/4] Saving tips to database...")
+	// Step 3: Store generated tips in database
+	progress = NewProgressIndicator("[3/3] Saving tips to database...")
 	progress.Start()
 	storedCount := 0
 	for _, tip := range tips {
@@ -1191,7 +1181,7 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 			storedCount++
 		}
 	}
-	progress.StopWithMessage(fmt.Sprintf("  [4/4] Saved %d tips to database", storedCount))
+	progress.StopWithMessage(fmt.Sprintf("  [3/3] Saved %d tips to database", storedCount))
 
 	// Update tracking fields
 	m.profile.CommandsSinceLastTipGen = 0
@@ -1200,9 +1190,8 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 
 	m.logger.Info("Tips reset and regeneration completed",
 		zap.Int64("deleted", deletedCount),
-		zap.Int("static_added", len(StaticTips)),
 		zap.Int("llm_generated", storedCount))
 
-	return fmt.Sprintf("\nDone! Tips reset complete.\n  - Deleted: %d old tips\n  - Added: %d static tips\n  - Generated: %d AI tips based on your history\n  - Total: %d tips now available",
-		deletedCount, len(StaticTips), storedCount, len(StaticTips)+storedCount)
+	return fmt.Sprintf("\nDone! Tips reset complete.\n  - Deleted: %d old tips\n  - Generated: %d AI tips based on your command history\n\nAll tips are now personalized to your shell usage!",
+		deletedCount, storedCount)
 }
