@@ -601,10 +601,21 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 		Tips []*GeneratedTip `json:"tips"`
 	}
 
+	// First try normal JSON parsing
 	if err := json.Unmarshal([]byte(content), &batchResponse); err != nil {
-		g.logger.Error("Failed to parse slow LLM response", zap.Error(err),
-			zap.String("content", response.Choices[0].Message.Content))
-		return nil, err
+		// If normal parsing fails, try to extract complete tip objects from incomplete JSON
+		g.logger.Warn("Standard JSON parse failed, attempting to extract partial tips", zap.Error(err))
+		extractedTips := extractTipsFromIncompleteJSON(content)
+		if len(extractedTips) > 0 {
+			g.logger.Info("Extracted tips from incomplete JSON",
+				zap.Int("extracted", len(extractedTips)))
+			batchResponse.Tips = extractedTips
+		} else {
+			g.logger.Error("Failed to parse slow LLM response and no tips could be extracted",
+				zap.Error(err),
+				zap.String("content", response.Choices[0].Message.Content))
+			return nil, err
+		}
 	}
 
 	for _, tip := range batchResponse.Tips {
@@ -641,4 +652,82 @@ func stripMarkdownCodeFences(content string) string {
 	}
 
 	return content
+}
+
+// extractTipsFromIncompleteJSON attempts to extract complete tip objects from
+// truncated or incomplete JSON responses. It finds each complete {...} object
+// within the tips array and parses them individually.
+func extractTipsFromIncompleteJSON(content string) []*GeneratedTip {
+	var tips []*GeneratedTip
+
+	// Find the start of the tips array
+	tipsStart := strings.Index(content, `"tips"`)
+	if tipsStart == -1 {
+		return tips
+	}
+
+	// Find the opening bracket of the array
+	arrayStart := strings.Index(content[tipsStart:], "[")
+	if arrayStart == -1 {
+		return tips
+	}
+	arrayStart += tipsStart
+
+	// Extract individual tip objects by finding matching braces
+	depth := 0
+	objectStart := -1
+	inString := false
+	escaped := false
+
+	for i := arrayStart; i < len(content); i++ {
+		c := content[i]
+
+		// Handle escape sequences in strings
+		if escaped {
+			escaped = false
+			continue
+		}
+		if c == '\\' && inString {
+			escaped = true
+			continue
+		}
+
+		// Track string boundaries
+		if c == '"' {
+			inString = !inString
+			continue
+		}
+
+		// Skip characters inside strings
+		if inString {
+			continue
+		}
+
+		// Track object depth
+		if c == '{' {
+			if depth == 0 {
+				objectStart = i
+			}
+			depth++
+		} else if c == '}' {
+			depth--
+			if depth == 0 && objectStart != -1 {
+				// Found a complete object
+				objectJSON := content[objectStart : i+1]
+				var tip GeneratedTip
+				if err := json.Unmarshal([]byte(objectJSON), &tip); err == nil {
+					// Only add tips with at least a title and content
+					if tip.Title != "" && tip.Content != "" {
+						tips = append(tips, &tip)
+					}
+				}
+				objectStart = -1
+			}
+		} else if c == ']' && depth == 0 {
+			// End of tips array
+			break
+		}
+	}
+
+	return tips
 }
