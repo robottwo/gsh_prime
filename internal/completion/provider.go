@@ -621,9 +621,6 @@ func (p *ShellCompletionProvider) getBuiltinCommandCompletions(prefix string) []
 		"subagents",
 		"reload-subagents",
 		"coach",
-		"coach-stats",
-		"coach-achievements",
-		"coach-challenges",
 	}
 
 	var completions []string
