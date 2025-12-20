@@ -605,9 +605,29 @@ choco install gsh
 
 ## Required Secrets
 
-| Secret | Purpose |
-|--------|---------|
-| `GITHUB_TOKEN` | Auto-provided, used for releases |
-| `AUR_PRIVATE_KEY` | Already configured for AUR publishing |
-| `CHOCO_API_KEY` | Chocolatey.org API key |
-| `WINGET_TOKEN` | GitHub PAT for winget-pkgs PRs |
+| Secret | Purpose | How to Obtain |
+|--------|---------|---------------|
+| `GITHUB_TOKEN` | Auto-provided, used for releases | Automatic |
+| `HOMEBREW_TAP_TOKEN` | PAT for pushing to homebrew-gsh repo | Create PAT with `repo` scope |
+| `SCOOP_BUCKET_TOKEN` | PAT for pushing to scoop-bucket repo | Create PAT with `repo` scope |
+| `AUR_PRIVATE_KEY` | SSH key for AUR publishing | Generate SSH key, add to AUR |
+| `CHOCO_API_KEY` | Chocolatey.org API key | Register at chocolatey.org |
+| `WINGET_TOKEN` | PAT for winget-pkgs PRs | Create PAT with `public_repo` scope |
+
+## Release Artifacts
+
+When a release is created, GoReleaser will automatically generate:
+
+| Artifact | Platforms |
+|----------|-----------|
+| `gsh_Linux_x86_64.tar.gz` | Linux AMD64 |
+| `gsh_Linux_arm64.tar.gz` | Linux ARM64 |
+| `gsh_Darwin_x86_64.tar.gz` | macOS Intel |
+| `gsh_Darwin_arm64.tar.gz` | macOS Apple Silicon |
+| `gsh_Windows_x86_64.zip` | Windows AMD64 |
+| `gsh_Windows_arm64.zip` | Windows ARM64 |
+| `gsh_<version>_amd64.deb` | Debian/Ubuntu AMD64 |
+| `gsh_<version>_arm64.deb` | Debian/Ubuntu ARM64 |
+| `gsh-<version>-1.x86_64.rpm` | RHEL/Fedora AMD64 |
+| `gsh-<version>-1.aarch64.rpm` | RHEL/Fedora ARM64 |
+| Source tarball | All platforms |
