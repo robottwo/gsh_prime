@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/atinylittleshell/gsh/internal/termfeatures"
 	"github.com/atinylittleshell/gsh/internal/utils"
@@ -180,7 +181,9 @@ Examples of good titles:
 		request.Temperature = float32(*modelConfig.Temperature)
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
 	resp, err := client.CreateChatCompletion(ctx, request)
 	if err != nil {
 		return "", fmt.Errorf("LLM API call failed: %w", err)
