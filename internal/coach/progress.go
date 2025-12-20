@@ -79,7 +79,8 @@ func (p *ProgressIndicator) render() {
 
 	// Use carriage return to overwrite the line, no newline
 	if wordCount > 0 {
-		countStyle := lipgloss.NewStyle().Foreground(color).Render(fmt.Sprintf("(%d)", wordCount))
+		// Word count in static gray, only bolt pulses
+		countStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("245")).Render(fmt.Sprintf("(%d)", wordCount))
 		fmt.Printf("\r  %s %s%s", message, countStyle, bolt)
 	} else {
 		fmt.Printf("\r  %s %s", message, bolt)
