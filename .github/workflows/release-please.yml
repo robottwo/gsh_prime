@@ -48,6 +48,49 @@ jobs:
           SCOOP_BUCKET_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN }}
           AUR_PRIVATE_KEY: ${{ secrets.AUR_PRIVATE_KEY }}
 
+  # Build Windows installer (.exe) using Inno Setup
+  windows-installer:
+    needs: [release-please, goreleaser]
+    if: ${{ needs.release-please.outputs.release_created }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Windows release asset
+        shell: pwsh
+        run: |
+          $version = "${{ needs.release-please.outputs.version }}"
+          $url = "https://github.com/robottwo/gsh_prime/releases/download/v${version}/gsh_Windows_x86_64.zip"
+          Invoke-WebRequest -Uri $url -OutFile gsh_Windows_x86_64.zip
+          Expand-Archive -Path gsh_Windows_x86_64.zip -DestinationPath installer_files
+
+      - name: Prepare installer files
+        shell: pwsh
+        run: |
+          Copy-Item LICENSE installer_files/
+          Copy-Item README.md installer_files/
+
+      - name: Build installer with Inno Setup
+        shell: pwsh
+        run: |
+          $version = "${{ needs.release-please.outputs.version }}"
+          $env:GSH_VERSION = $version
+
+          # Copy the installer script to the build directory
+          Copy-Item packaging/windows/installer.iss installer_files/
+
+          cd installer_files
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+
+      - name: Upload installer to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ needs.release-please.outputs.version }}"
+          $installer = "installer_files/gsh_${version}_windows_x86_64_setup.exe"
+          gh release upload "v${version}" $installer --clobber
+
   # Publish to Chocolatey (Windows package manager)
   chocolatey:
     needs: [release-please, goreleaser]
