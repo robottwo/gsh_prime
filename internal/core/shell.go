@@ -213,6 +213,13 @@ func RunInteractiveShell(
 						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("gsh: Coach not initialized\n") + gline.RESET_CURSOR_COLUMN)
 					}
 					continue
+				case "coach-tips":
+					if coachManager != nil {
+						fmt.Print(coachManager.RenderAllTips())
+					} else {
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("gsh: Coach not initialized\n") + gline.RESET_CURSOR_COLUMN)
+					}
+					continue
 				default:
 					logger.Warn("unknown agent control", zap.String("control", control))
 					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Unknown agent control: "+control+"\n") + gline.RESET_CURSOR_COLUMN)
