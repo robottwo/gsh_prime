@@ -593,11 +593,15 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 		return nil, fmt.Errorf("no response from slow LLM")
 	}
 
+	// Extract JSON from response, stripping markdown code fences if present
+	content := response.Choices[0].Message.Content
+	content = stripMarkdownCodeFences(content)
+
 	var batchResponse struct {
 		Tips []*GeneratedTip `json:"tips"`
 	}
 
-	if err := json.Unmarshal([]byte(response.Choices[0].Message.Content), &batchResponse); err != nil {
+	if err := json.Unmarshal([]byte(content), &batchResponse); err != nil {
 		g.logger.Error("Failed to parse slow LLM response", zap.Error(err),
 			zap.String("content", response.Choices[0].Message.Content))
 		return nil, err
@@ -613,4 +617,28 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 		zap.Int("generated", len(batchResponse.Tips)))
 
 	return batchResponse.Tips, nil
+}
+
+// stripMarkdownCodeFences removes markdown code fences from LLM responses
+// Handles formats like: ```json\n{...}\n``` or ```\n{...}\n```
+func stripMarkdownCodeFences(content string) string {
+	content = strings.TrimSpace(content)
+
+	// Check if content starts with ``` (markdown code fence)
+	if strings.HasPrefix(content, "```") {
+		// Find the end of the first line (after ```json or just ```)
+		firstNewline := strings.Index(content, "\n")
+		if firstNewline != -1 {
+			content = content[firstNewline+1:]
+		}
+
+		// Find and remove the closing ```
+		if lastFence := strings.LastIndex(content, "```"); lastFence != -1 {
+			content = content[:lastFence]
+		}
+
+		content = strings.TrimSpace(content)
+	}
+
+	return content
 }
