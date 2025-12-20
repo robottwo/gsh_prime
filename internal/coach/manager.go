@@ -931,6 +931,12 @@ func (m *CoachManager) checkAndTriggerTipGeneration() {
 
 // generateNewTipsAsync generates new tips using the slow LLM in the background
 func (m *CoachManager) generateNewTipsAsync() {
+	// Skip if essential components are missing
+	if m.historyManager == nil || m.runner == nil {
+		m.logger.Warn("Skipping tip generation - missing required components")
+		return
+	}
+
 	m.logger.Info("Starting background tip generation using slow LLM")
 
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)

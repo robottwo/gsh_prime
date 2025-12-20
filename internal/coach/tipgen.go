@@ -133,19 +133,21 @@ func (g *LLMTipGenerator) buildTipContext(ctx context.Context) (*TipContext, err
 		CurrentStreak: profile.CurrentStreak,
 	}
 
-	// Get recent history
-	entries, err := g.historyManager.GetRecentEntries("", 500)
-	if err != nil {
-		g.logger.Warn("Failed to get history", zap.Error(err))
-	} else {
-		tipContext.TotalCommands = len(entries)
-		tipContext.TopCommands = g.analyzeCommandFrequency(entries, 10)
-		tipContext.ErrorCommands = g.analyzeErrorCommands(entries, 5)
-		tipContext.LongCommands = g.findLongCommands(entries, 5)
-		tipContext.RecentErrors = g.getRecentErrors(entries, 5)
-		tipContext.Directories = g.getUniqueDirectories(entries, 5)
-		tipContext.GitUsage = g.countGitCommands(entries)
-		tipContext.PipelineUsage = g.countPipelines(entries)
+	// Get recent history (skip if historyManager or its db is nil)
+	if g.historyManager != nil && g.historyManager.GetDB() != nil {
+		entries, err := g.historyManager.GetRecentEntries("", 500)
+		if err != nil {
+			g.logger.Warn("Failed to get history", zap.Error(err))
+		} else {
+			tipContext.TotalCommands = len(entries)
+			tipContext.TopCommands = g.analyzeCommandFrequency(entries, 10)
+			tipContext.ErrorCommands = g.analyzeErrorCommands(entries, 5)
+			tipContext.LongCommands = g.findLongCommands(entries, 5)
+			tipContext.RecentErrors = g.getRecentErrors(entries, 5)
+			tipContext.Directories = g.getUniqueDirectories(entries, 5)
+			tipContext.GitUsage = g.countGitCommands(entries)
+			tipContext.PipelineUsage = g.countPipelines(entries)
+		}
 	}
 
 	if todayStats != nil {
