@@ -1127,12 +1127,13 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	progress.StopWithMessage(fmt.Sprintf("  [1/3] Clearing existing tips... deleted %d tips", deletedCount))
 	m.logger.Info("Deleted existing tips", zap.Int64("count", deletedCount))
 
-	// Step 2: Generate 61 new tips using the slow LLM with a 3-minute timeout
+	// Step 2: Generate 61 new tips using the slow LLM
+	// Uses 10-minute max timeout, but will timeout after 1 minute of inactivity
 	progress = NewProgressIndicator("[2/3] Generating 61 tips")
 	progress.Start()
 
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 
 	tips, err := generator.GenerateBatchTipsWithSlowModelProgress(ctx, 61, progress)
@@ -1140,8 +1141,8 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 		progress.Stop()
 		// Check for timeout or cancellation errors
 		if errors.Is(err, context.DeadlineExceeded) {
-			m.logger.Warn("LLM tip generation timed out after 3 minutes", zap.Error(err))
-			return fmt.Sprintf("Reset incomplete. Deleted %d tips.\nAI tip generation timed out after 3 minutes. Try again later.", deletedCount)
+			m.logger.Warn("LLM tip generation timed out (no activity for 1 minute)", zap.Error(err))
+			return fmt.Sprintf("Reset incomplete. Deleted %d tips.\nAI tip generation timed out (no response for 1 minute). Try again later.", deletedCount)
 		}
 		if errors.Is(err, context.Canceled) {
 			m.logger.Warn("LLM tip generation was canceled", zap.Error(err))

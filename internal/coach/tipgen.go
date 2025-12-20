@@ -8,6 +8,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/atinylittleshell/gsh/internal/history"
@@ -594,16 +595,48 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 	var content string
 
 	if progress != nil {
-		// Use streaming to track progress
+		// Use streaming to track progress with inactivity timeout
 		stream, err := llmClient.CreateChatCompletionStream(ctx, request)
 		if err != nil {
 			g.logger.Error("Slow LLM stream request failed", zap.Error(err))
 			return nil, err
 		}
-		defer stream.Close()
+		defer func() {
+			_ = stream.Close()
+		}()
 
 		var contentBuilder strings.Builder
 		wordCount := 0
+
+		// Create a cancellable context for inactivity timeout
+		streamCtx, streamCancel := context.WithCancel(ctx)
+		defer streamCancel()
+
+		// Track last activity time
+		var lastActivityMu sync.Mutex
+		lastActivity := time.Now()
+
+		// Inactivity monitor goroutine
+		inactivityTimeout := 1 * time.Minute
+		go func() {
+			ticker := time.NewTicker(5 * time.Second)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-streamCtx.Done():
+					return
+				case <-ticker.C:
+					lastActivityMu.Lock()
+					elapsed := time.Since(lastActivity)
+					lastActivityMu.Unlock()
+					if elapsed > inactivityTimeout {
+						g.logger.Warn("LLM stream inactivity timeout", zap.Duration("elapsed", elapsed))
+						streamCancel()
+						return
+					}
+				}
+			}
+		}()
 
 		for {
 			response, err := stream.Recv()
@@ -611,13 +644,21 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 				if errors.Is(err, io.EOF) {
 					break
 				}
-				// Check if context was canceled
-				if ctx.Err() != nil {
-					return nil, ctx.Err()
+				// Check if context was canceled (either parent or inactivity)
+				if streamCtx.Err() != nil {
+					if ctx.Err() != nil {
+						return nil, ctx.Err()
+					}
+					return nil, context.DeadlineExceeded // Inactivity timeout
 				}
 				g.logger.Error("Stream receive error", zap.Error(err))
 				return nil, err
 			}
+
+			// Update last activity time
+			lastActivityMu.Lock()
+			lastActivity = time.Now()
+			lastActivityMu.Unlock()
 
 			if len(response.Choices) > 0 {
 				chunk := response.Choices[0].Delta.Content
