@@ -1128,14 +1128,14 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	m.logger.Info("Deleted existing tips", zap.Int64("count", deletedCount))
 
 	// Step 2: Generate 61 new tips using the slow LLM with a 3-minute timeout
-	progress = NewProgressIndicator("[2/3] Analyzing command history & generating 61 tips (up to 3 min)...")
+	progress = NewProgressIndicator("[2/3] Generating 61 tips")
 	progress.Start()
 
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
-	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 61)
+	tips, err := generator.GenerateBatchTipsWithSlowModelProgress(ctx, 61, progress)
 	if err != nil {
 		progress.Stop()
 		// Check for timeout or cancellation errors

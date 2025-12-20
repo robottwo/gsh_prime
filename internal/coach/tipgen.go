@@ -3,7 +3,9 @@ package coach
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"time"
@@ -540,12 +542,17 @@ const tipResponseSchema = `{
 // GenerateBatchTipsWithSlowModel generates multiple tips using the slow LLM model
 // This is used for background tip generation that takes user history into account
 func (g *LLMTipGenerator) GenerateBatchTipsWithSlowModel(ctx context.Context, count int) ([]*GeneratedTip, error) {
+	return g.GenerateBatchTipsWithSlowModelProgress(ctx, count, nil)
+}
+
+// GenerateBatchTipsWithSlowModelProgress generates tips with optional progress indicator
+func (g *LLMTipGenerator) GenerateBatchTipsWithSlowModelProgress(ctx context.Context, count int, progress *ProgressIndicator) ([]*GeneratedTip, error) {
 	tipContext, err := g.buildTipContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tips, err := g.generateBatchWithSlowLLM(ctx, tipContext, count)
+	tips, err := g.generateBatchWithSlowLLM(ctx, tipContext, count, progress)
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +566,7 @@ func (g *LLMTipGenerator) GenerateBatchTipsWithSlowModel(ctx context.Context, co
 }
 
 // generateBatchWithSlowLLM generates multiple tips using the slow LLM model
-func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipContext *TipContext, count int) ([]*GeneratedTip, error) {
+func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipContext *TipContext, count int, progress *ProgressIndicator) ([]*GeneratedTip, error) {
 	llmClient, modelConfig := utils.GetLLMClient(g.runner, utils.SlowModel)
 
 	prompt := g.buildBatchPrompt(tipContext, count)
@@ -577,24 +584,72 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 		ResponseFormat: &openai.ChatCompletionResponseFormat{
 			Type: openai.ChatCompletionResponseFormatTypeJSONObject,
 		},
+		Stream: progress != nil, // Use streaming when progress indicator is provided
 	}
 
 	if modelConfig.Temperature != nil {
 		request.Temperature = float32(*modelConfig.Temperature)
 	}
 
-	response, err := llmClient.CreateChatCompletion(ctx, request)
-	if err != nil {
-		g.logger.Error("Slow LLM request failed", zap.Error(err))
-		return nil, err
-	}
+	var content string
 
-	if len(response.Choices) == 0 {
-		return nil, fmt.Errorf("no response from slow LLM")
+	if progress != nil {
+		// Use streaming to track progress
+		stream, err := llmClient.CreateChatCompletionStream(ctx, request)
+		if err != nil {
+			g.logger.Error("Slow LLM stream request failed", zap.Error(err))
+			return nil, err
+		}
+		defer stream.Close()
+
+		var contentBuilder strings.Builder
+		wordCount := 0
+
+		for {
+			response, err := stream.Recv()
+			if err != nil {
+				if errors.Is(err, io.EOF) {
+					break
+				}
+				// Check if context was canceled
+				if ctx.Err() != nil {
+					return nil, ctx.Err()
+				}
+				g.logger.Error("Stream receive error", zap.Error(err))
+				return nil, err
+			}
+
+			if len(response.Choices) > 0 {
+				chunk := response.Choices[0].Delta.Content
+				contentBuilder.WriteString(chunk)
+
+				// Count words in this chunk (approximate by counting spaces + 1)
+				chunkWords := len(strings.Fields(chunk))
+				if chunkWords > 0 {
+					wordCount += chunkWords
+					progress.UpdateWordCount(wordCount)
+				}
+			}
+		}
+
+		content = contentBuilder.String()
+	} else {
+		// Non-streaming request
+		request.Stream = false
+		response, err := llmClient.CreateChatCompletion(ctx, request)
+		if err != nil {
+			g.logger.Error("Slow LLM request failed", zap.Error(err))
+			return nil, err
+		}
+
+		if len(response.Choices) == 0 {
+			return nil, fmt.Errorf("no response from slow LLM")
+		}
+
+		content = response.Choices[0].Message.Content
 	}
 
 	// Extract JSON from response, stripping markdown code fences if present
-	content := response.Choices[0].Message.Content
 	content = stripMarkdownCodeFences(content)
 
 	var batchResponse struct {
@@ -613,7 +668,7 @@ func (g *LLMTipGenerator) generateBatchWithSlowLLM(ctx context.Context, tipConte
 		} else {
 			g.logger.Error("Failed to parse slow LLM response and no tips could be extracted",
 				zap.Error(err),
-				zap.String("content", response.Choices[0].Message.Content))
+				zap.String("content", content))
 			return nil, err
 		}
 	}

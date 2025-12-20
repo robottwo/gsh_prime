@@ -21,6 +21,7 @@ var animationColors = []lipgloss.Color{
 type ProgressIndicator struct {
 	message    string
 	frameIndex int
+	wordCount  int
 	stopChan   chan struct{}
 	doneChan   chan struct{}
 	mu         sync.Mutex
@@ -68,10 +69,21 @@ func (p *ProgressIndicator) Start() {
 
 // render displays the current frame
 func (p *ProgressIndicator) render() {
+	p.mu.Lock()
+	wordCount := p.wordCount
+	message := p.message
+	p.mu.Unlock()
+
 	color := animationColors[p.frameIndex]
 	bolt := lipgloss.NewStyle().Foreground(color).Render(lightning)
+
 	// Use carriage return to overwrite the line, no newline
-	fmt.Printf("\r  %s %s", p.message, bolt)
+	if wordCount > 0 {
+		countStyle := lipgloss.NewStyle().Foreground(color).Render(fmt.Sprintf("(%d)", wordCount))
+		fmt.Printf("\r  %s %s%s", message, countStyle, bolt)
+	} else {
+		fmt.Printf("\r  %s %s", message, bolt)
+	}
 }
 
 // Stop stops the animation and clears the line
@@ -114,5 +126,19 @@ func (p *ProgressIndicator) StopWithMessage(message string) {
 func (p *ProgressIndicator) UpdateMessage(message string) {
 	p.mu.Lock()
 	p.message = message
+	p.mu.Unlock()
+}
+
+// UpdateWordCount updates the word count being displayed
+func (p *ProgressIndicator) UpdateWordCount(count int) {
+	p.mu.Lock()
+	p.wordCount = count
+	p.mu.Unlock()
+}
+
+// AddWords adds to the word count
+func (p *ProgressIndicator) AddWords(count int) {
+	p.mu.Lock()
+	p.wordCount += count
 	p.mu.Unlock()
 }
