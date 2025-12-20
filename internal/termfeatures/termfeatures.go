@@ -238,9 +238,10 @@ func sanitizeTitle(title string) string {
 
 	result := sanitized.String()
 
-	// Limit length to 255 characters
-	if len(result) > 255 {
-		result = result[:255]
+	// Limit length to 255 runes (not bytes) to avoid splitting multi-byte UTF-8 characters
+	runes := []rune(result)
+	if len(runes) > 255 {
+		result = string(runes[:255])
 	}
 
 	return result
