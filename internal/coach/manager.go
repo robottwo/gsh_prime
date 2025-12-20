@@ -1135,14 +1135,14 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	m.seedStaticTips()
 	fmt.Printf(" added %d static tips\n", len(StaticTips))
 
-	// Generate 50 new tips using the slow LLM with a 1-minute timeout
+	// Generate 20 new tips using the slow LLM with a 1-minute timeout
 	fmt.Println("  [3/4] Analyzing your command history...")
 	fmt.Println("  [4/4] Generating personalized tips with AI (up to 1 min)...")
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
 
-	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 50)
+	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 20)
 	if err != nil {
 		// Check for timeout or cancellation errors
 		if errors.Is(err, context.DeadlineExceeded) {
