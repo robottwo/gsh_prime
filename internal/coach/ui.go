@@ -113,7 +113,7 @@ func (m *CoachManager) RenderDashboard() string {
 
 	// Footer
 	sb.WriteString(styles.AGENT_MESSAGE("╠══════════════════════════════════════════════════════════════════════════╣\n"))
-	sb.WriteString(styles.AGENT_MESSAGE("║  @!coach-stats | @!coach-achievements | @!coach-challenges | @!coach-tips║\n"))
+	sb.WriteString(styles.AGENT_MESSAGE("║  @!coach [stats|achievements|challenges|tips|reset-tips]                 ║\n"))
 	sb.WriteString(styles.AGENT_MESSAGE("╚══════════════════════════════════════════════════════════════════════════╝\n"))
 
 	return sb.String()
