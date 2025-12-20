@@ -25,6 +25,7 @@ type ProgressIndicator struct {
 	stopChan   chan struct{}
 	doneChan   chan struct{}
 	mu         sync.Mutex
+	stopOnce   sync.Once
 	running    bool
 }
 
@@ -87,39 +88,30 @@ func (p *ProgressIndicator) render() {
 	}
 }
 
-// Stop stops the animation and clears the line
-func (p *ProgressIndicator) Stop() {
+// shutdown performs the shared shutdown sequence (called via stopOnce)
+func (p *ProgressIndicator) shutdown() {
 	p.mu.Lock()
-	if !p.running {
-		p.mu.Unlock()
-		return
-	}
+	wasRunning := p.running
 	p.running = false
 	p.mu.Unlock()
 
-	close(p.stopChan)
-	<-p.doneChan
+	if wasRunning {
+		close(p.stopChan)
+		<-p.doneChan
+	}
 
 	// Clear the line and move cursor back
 	fmt.Print("\r\033[K")
 }
 
+// Stop stops the animation and clears the line
+func (p *ProgressIndicator) Stop() {
+	p.stopOnce.Do(p.shutdown)
+}
+
 // StopWithMessage stops the animation and prints a final message
 func (p *ProgressIndicator) StopWithMessage(message string) {
-	p.mu.Lock()
-	if !p.running {
-		p.mu.Unlock()
-		fmt.Println(message)
-		return
-	}
-	p.running = false
-	p.mu.Unlock()
-
-	close(p.stopChan)
-	<-p.doneChan
-
-	// Clear the line and print the final message
-	fmt.Print("\r\033[K")
+	p.stopOnce.Do(p.shutdown)
 	fmt.Println(message)
 }
 
