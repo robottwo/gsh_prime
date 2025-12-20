@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os/user"
@@ -1130,12 +1131,22 @@ func (m *CoachManager) ResetAndRegenerateTips() string {
 	// Re-seed static tips
 	m.seedStaticTips()
 
-	// Generate 50 new tips using the slow LLM
+	// Generate 50 new tips using the slow LLM with a 10-minute timeout
 	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
 
 	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 50)
 	if err != nil {
+		// Check for timeout or cancellation errors
+		if errors.Is(err, context.DeadlineExceeded) {
+			m.logger.Warn("LLM tip generation timed out after 10 minutes", zap.Error(err))
+			return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nAI tip generation timed out after 10 minutes. Try again later.", deletedCount, len(StaticTips))
+		}
+		if errors.Is(err, context.Canceled) {
+			m.logger.Warn("LLM tip generation was canceled", zap.Error(err))
+			return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nAI tip generation was canceled.", deletedCount, len(StaticTips))
+		}
 		m.logger.Warn("Failed to generate tips with LLM", zap.Error(err))
 		return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nFailed to generate new AI tips: %v", deletedCount, len(StaticTips), err)
 	}
