@@ -74,13 +74,12 @@ changelog:
       - "^docs:"
       - "^test:"
 
-# Homebrew
-brews:
+# Homebrew Casks (replaces deprecated brews section as of GoReleaser v2.10)
+homebrew_casks:
   - name: gsh
     homepage: https://github.com/robottwo/gsh_prime
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
-    directory: Formula
     commit_author:
       name: robottwo
       email: robottwo@users.noreply.github.com
@@ -88,10 +87,6 @@ brews:
       owner: robottwo
       name: homebrew-gsh
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    install: |
-      bin.install "gsh"
-    test: |
-      system "#{bin}/gsh", "--version"
 
 # Scoop (Windows)
 scoops:
