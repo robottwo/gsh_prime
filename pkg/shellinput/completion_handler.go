@@ -286,19 +286,19 @@ func longestCommonPrefix(candidates []CompletionCandidate) string {
 		return ""
 	}
 
-	prefix := candidates[0].Value
+	prefixRunes := []rune(candidates[0].Value)
 	for _, candidate := range candidates[1:] {
-		candidateValue := candidate.Value
-		maxLength := min(len(prefix), len(candidateValue))
+		candidateRunes := []rune(candidate.Value)
+		maxLength := min(len(prefixRunes), len(candidateRunes))
 		i := 0
-		for i < maxLength && prefix[i] == candidateValue[i] {
+		for i < maxLength && prefixRunes[i] == candidateRunes[i] {
 			i++
 		}
-		prefix = prefix[:i]
-		if prefix == "" {
+		prefixRunes = prefixRunes[:i]
+		if len(prefixRunes) == 0 {
 			break
 		}
 	}
 
-	return prefix
+	return string(prefixRunes)
 }
