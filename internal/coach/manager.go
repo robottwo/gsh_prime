@@ -1017,6 +1017,7 @@ func getTipIcon(tipType TipType) string {
 }
 
 // GetRandomDatabaseTip returns a random tip from the database
+// Tips are weighted by priority and penalized based on how recently/often they were shown
 func (m *CoachManager) GetRandomDatabaseTip() *CoachDatabaseTip {
 	var tips []CoachDatabaseTip
 	m.db.Where("active = ?", true).Find(&tips)
@@ -1025,28 +1026,59 @@ func (m *CoachManager) GetRandomDatabaseTip() *CoachDatabaseTip {
 		return nil
 	}
 
-	// Weighted selection by priority
+	now := time.Now()
+
+	// Weighted selection by priority, penalized by shown count and recency
 	totalWeight := 0
-	for _, tip := range tips {
+	weights := make([]int, len(tips))
+	for i, tip := range tips {
 		weight := tip.Priority
 		if weight <= 0 {
 			weight = 1
 		}
+
+		// Penalize tips that have been shown many times
+		// Each time shown reduces weight by 20%, minimum 10% of original
+		if tip.ShownCount > 0 {
+			reduction := 1.0 - (float64(tip.ShownCount) * 0.2)
+			if reduction < 0.1 {
+				reduction = 0.1
+			}
+			weight = int(float64(weight) * reduction)
+			if weight < 1 {
+				weight = 1
+			}
+		}
+
+		// Penalize tips shown recently (within last 24 hours)
+		if tip.LastShownAt.Valid {
+			hoursSinceShown := now.Sub(tip.LastShownAt.Time).Hours()
+			if hoursSinceShown < 24 {
+				// Reduce weight significantly for recently shown tips
+				// Tips shown in last hour get 10% weight, scaling up to 100% at 24 hours
+				recencyFactor := hoursSinceShown / 24.0
+				if recencyFactor < 0.1 {
+					recencyFactor = 0.1
+				}
+				weight = int(float64(weight) * recencyFactor)
+				if weight < 1 {
+					weight = 1
+				}
+			}
+		}
+
+		weights[i] = weight
 		totalWeight += weight
 	}
 
 	r := rand.Intn(totalWeight)
 	cumulative := 0
 	for i := range tips {
-		weight := tips[i].Priority
-		if weight <= 0 {
-			weight = 1
-		}
-		cumulative += weight
+		cumulative += weights[i]
 		if r < cumulative {
 			// Update shown count
 			tips[i].ShownCount++
-			tips[i].LastShownAt = sql.NullTime{Time: time.Now(), Valid: true}
+			tips[i].LastShownAt = sql.NullTime{Time: now, Valid: true}
 			m.db.Save(&tips[i])
 			return &tips[i]
 		}
