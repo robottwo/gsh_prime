@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"math/rand"
 	"os/user"
 	"strings"
@@ -1105,4 +1106,78 @@ func ConvertDatabaseTipToDisplay(tip *CoachDatabaseTip) *CoachDisplayContent {
 		Content:  tip.Content,
 		Priority: tip.Priority,
 	}
+}
+
+// ResetAndRegenerateTips clears all tips and generates new ones from the slow LLM
+// This runs synchronously and returns the result message
+func (m *CoachManager) ResetAndRegenerateTips() string {
+	// Check if essential components are available
+	if m.historyManager == nil || m.runner == nil {
+		return "Cannot regenerate tips - missing required components"
+	}
+
+	m.logger.Info("Resetting and regenerating all tips")
+
+	// Delete all existing tips from database
+	result := m.db.Where("1 = 1").Delete(&CoachDatabaseTip{})
+	deletedCount := result.RowsAffected
+	m.logger.Info("Deleted existing tips", zap.Int64("count", deletedCount))
+
+	// Reset the seeded flag so static tips get re-added
+	m.profile.TipsSeeded = false
+	m.db.Save(m.profile)
+
+	// Re-seed static tips
+	m.seedStaticTips()
+
+	// Generate 50 new tips using the slow LLM
+	generator := NewLLMTipGenerator(m.runner, m.historyManager, m, m.logger)
+	ctx := context.Background()
+
+	tips, err := generator.GenerateBatchTipsWithSlowModel(ctx, 50)
+	if err != nil {
+		m.logger.Warn("Failed to generate tips with LLM", zap.Error(err))
+		return fmt.Sprintf("Reset complete. Deleted %d tips, re-added %d static tips.\nFailed to generate new AI tips: %v", deletedCount, len(StaticTips), err)
+	}
+
+	// Store generated tips in database
+	storedCount := 0
+	for _, tip := range tips {
+		dbTip := CoachDatabaseTip{
+			TipID:      tip.ID,
+			Source:     "llm",
+			Category:   tip.Category,
+			Icon:       getTipIcon(tip.Type),
+			Title:      tip.Title,
+			Content:    tip.Content,
+			Priority:   tip.Priority,
+			Reasoning:  tip.Reasoning,
+			Command:    tip.Command,
+			Suggestion: tip.Suggestion,
+			Impact:     tip.Impact,
+			Active:     true,
+		}
+
+		if len(tip.BasedOn) > 0 {
+			basedOnJSON, _ := json.Marshal(tip.BasedOn)
+			dbTip.BasedOn = string(basedOnJSON)
+		}
+
+		if err := m.db.Create(&dbTip).Error; err == nil {
+			storedCount++
+		}
+	}
+
+	// Update tracking fields
+	m.profile.CommandsSinceLastTipGen = 0
+	m.profile.LastTipGenTime = sql.NullTime{Time: time.Now(), Valid: true}
+	m.db.Save(m.profile)
+
+	m.logger.Info("Tips reset and regeneration completed",
+		zap.Int64("deleted", deletedCount),
+		zap.Int("static_added", len(StaticTips)),
+		zap.Int("llm_generated", storedCount))
+
+	return fmt.Sprintf("Tips reset complete!\n- Deleted: %d old tips\n- Added: %d static tips\n- Generated: %d AI tips based on your history\n\nTotal: %d tips now available",
+		deletedCount, len(StaticTips), storedCount, len(StaticTips)+storedCount)
 }
