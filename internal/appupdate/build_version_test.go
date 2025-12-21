@@ -239,6 +239,15 @@ func TestBuildSystemVersionConsistency(t *testing.T) {
 			// Verify flake.nix has logic to ensure v prefix
 			assert.Contains(t, string(flakeContent), `else "v${rawVersion}"`,
 				"flake.nix should have logic to ensure 'v' prefix")
+
+			// Also verify that the logic would resolve correctly given our current VERSION
+			if !strings.HasPrefix(version, "v") {
+				// Since our VERSION file doesn't have 'v' prefix (e.g. "0.26.0"),
+				// the logic `if builtins.substring 0 1 rawVersion == "v" then rawVersion else "v${rawVersion}"`
+				// should evaluate to "v0.26.0"
+				assert.Equal(t, "v"+version, expectedVersionString,
+					"Resolved version should be 'v' + VERSION content")
+			}
 		}
 
 		// Verify the format is what appupdate expects
