@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/history"
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/pkg/gline"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/expand"
@@ -301,7 +301,7 @@ func TestGetApprovedBashCommandRegexIntegration(t *testing.T) {
 		}
 
 		// Set the environment variable directly on the runner
-		runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+		runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 			Kind: expand.String,
 			Str:  `["env_pattern_1.*", "env_pattern_2.*"]`,
 		}

@@ -3,7 +3,7 @@ package gline
 import (
 	"context"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 )
 
 // IdleSummaryGenerator is a function that generates an idle summary

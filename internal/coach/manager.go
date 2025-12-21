@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/robottwo/bishop/internal/history"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

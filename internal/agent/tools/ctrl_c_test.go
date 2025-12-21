@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/pkg/gline"
 	tea "github.com/charmbracelet/bubbletea"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"

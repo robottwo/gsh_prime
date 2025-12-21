@@ -1,54 +1,54 @@
 # Changelog
 
-## [0.28.0](https://github.com/robottwo/gsh_prime/compare/v0.27.0...v0.28.0) (2025-12-21)
+## [0.28.0](https://github.com/robottwo/bishop/compare/v0.27.0...v0.28.0) (2025-12-21)
 
 
 ### Features
 
-* Add macOS DMG installers to release workflow ([#76](https://github.com/robottwo/gsh_prime/issues/76)) ([ef7ff20](https://github.com/robottwo/gsh_prime/commit/ef7ff2083e9b076ff4a7cf6574cc7619551b3638))
-* Add Nix package building to release workflow ([#78](https://github.com/robottwo/gsh_prime/issues/78)) ([8dd2c33](https://github.com/robottwo/gsh_prime/commit/8dd2c330bc24c02d4399eadde18e743f3bc18209))
+* Add macOS DMG installers to release workflow ([#76](https://github.com/robottwo/bishop/issues/76)) ([ef7ff20](https://github.com/robottwo/bishop/commit/ef7ff2083e9b076ff4a7cf6574cc7619551b3638))
+* Add Nix package building to release workflow ([#78](https://github.com/robottwo/bishop/issues/78)) ([8dd2c33](https://github.com/robottwo/bishop/commit/8dd2c330bc24c02d4399eadde18e743f3bc18209))
 
 
 ### Bug Fixes
 
-* Rename FileExists to SourceFileExists to prevent infinite recursion ([#77](https://github.com/robottwo/gsh_prime/issues/77)) ([2c0852f](https://github.com/robottwo/gsh_prime/commit/2c0852faecac85df35b148381bdd95633c81a43e))
+* Rename FileExists to SourceFileExists to prevent infinite recursion ([#77](https://github.com/robottwo/bishop/issues/77)) ([2c0852f](https://github.com/robottwo/bishop/commit/2c0852faecac85df35b148381bdd95633c81a43e))
 
-## [0.27.0](https://github.com/robottwo/gsh_prime/compare/v0.26.1...v0.27.0) (2025-12-20)
+## [0.27.0](https://github.com/robottwo/bishop/compare/v0.26.1...v0.27.0) (2025-12-20)
 
 
 ### Features
 
-* add dynamic coaching tips based on user behavior ([#70](https://github.com/robottwo/gsh_prime/issues/70)) ([5a71bd3](https://github.com/robottwo/gsh_prime/commit/5a71bd3f9687853d6b5ee0eb7c582e5db815b53c))
-* Add dynamic terminal title updates based on command history ([#73](https://github.com/robottwo/gsh_prime/issues/73)) ([ecf06fa](https://github.com/robottwo/gsh_prime/commit/ecf06fa1007d7c715f7ae8b48d8de33c9440f93c))
-* Add idle summary feature for command prompt ([#69](https://github.com/robottwo/gsh_prime/issues/69)) ([2d8052e](https://github.com/robottwo/gsh_prime/commit/2d8052e715307a0ddf2daebbfd5da97c5716a43e))
-* Right-align coach tips in assistant box ([#66](https://github.com/robottwo/gsh_prime/issues/66)) ([ee20bfd](https://github.com/robottwo/gsh_prime/commit/ee20bfd02450531078a95bacdee58a3b18b194f9))
+* add dynamic coaching tips based on user behavior ([#70](https://github.com/robottwo/bishop/issues/70)) ([5a71bd3](https://github.com/robottwo/bishop/commit/5a71bd3f9687853d6b5ee0eb7c582e5db815b53c))
+* Add dynamic terminal title updates based on command history ([#73](https://github.com/robottwo/bishop/issues/73)) ([ecf06fa](https://github.com/robottwo/bishop/commit/ecf06fa1007d7c715f7ae8b48d8de33c9440f93c))
+* Add idle summary feature for command prompt ([#69](https://github.com/robottwo/bishop/issues/69)) ([2d8052e](https://github.com/robottwo/bishop/commit/2d8052e715307a0ddf2daebbfd5da97c5716a43e))
+* Right-align coach tips in assistant box ([#66](https://github.com/robottwo/bishop/issues/66)) ([ee20bfd](https://github.com/robottwo/bishop/commit/ee20bfd02450531078a95bacdee58a3b18b194f9))
 
 
 ### Bug Fixes
 
-* Adjust tab completion to use common prefix ([#64](https://github.com/robottwo/gsh_prime/issues/64)) ([3c6b9aa](https://github.com/robottwo/gsh_prime/commit/3c6b9aa7abe39582db8ce885c52139a6f77e018b))
-* Correct path handling for ./. and ~/. tab completions ([#72](https://github.com/robottwo/gsh_prime/issues/72)) ([3b43eee](https://github.com/robottwo/gsh_prime/commit/3b43eee2500d86f384bfefc0f5ffa7b9aaf434e2))
-* Prevent LLM path hallucinations during completion ([#62](https://github.com/robottwo/gsh_prime/issues/62)) ([87d6e65](https://github.com/robottwo/gsh_prime/commit/87d6e65d3a2ccb3b6c245fdf2e66d77d010953cd))
-* prevent shell exit on Ctrl+C ([#61](https://github.com/robottwo/gsh_prime/issues/61)) ([315f634](https://github.com/robottwo/gsh_prime/commit/315f63494c0f564d7663b6fa9cd6445eafdbfa2f))
-* Treat variation selectors and zero-width chars as width 0 ([#74](https://github.com/robottwo/gsh_prime/issues/74)) ([a336d5e](https://github.com/robottwo/gsh_prime/commit/a336d5e96182c9a0a23ad112077e557555c44e1f))
-* Use custom wordwrap with accurate Unicode width for coach tips ([#67](https://github.com/robottwo/gsh_prime/issues/67)) ([528ff15](https://github.com/robottwo/gsh_prime/commit/528ff158971506634507c7792ebbf386da209070))
+* Adjust tab completion to use common prefix ([#64](https://github.com/robottwo/bishop/issues/64)) ([3c6b9aa](https://github.com/robottwo/bishop/commit/3c6b9aa7abe39582db8ce885c52139a6f77e018b))
+* Correct path handling for ./. and ~/. tab completions ([#72](https://github.com/robottwo/bishop/issues/72)) ([3b43eee](https://github.com/robottwo/bishop/commit/3b43eee2500d86f384bfefc0f5ffa7b9aaf434e2))
+* Prevent LLM path hallucinations during completion ([#62](https://github.com/robottwo/bishop/issues/62)) ([87d6e65](https://github.com/robottwo/bishop/commit/87d6e65d3a2ccb3b6c245fdf2e66d77d010953cd))
+* prevent shell exit on Ctrl+C ([#61](https://github.com/robottwo/bishop/issues/61)) ([315f634](https://github.com/robottwo/bishop/commit/315f63494c0f564d7663b6fa9cd6445eafdbfa2f))
+* Treat variation selectors and zero-width chars as width 0 ([#74](https://github.com/robottwo/bishop/issues/74)) ([a336d5e](https://github.com/robottwo/bishop/commit/a336d5e96182c9a0a23ad112077e557555c44e1f))
+* Use custom wordwrap with accurate Unicode width for coach tips ([#67](https://github.com/robottwo/bishop/issues/67)) ([528ff15](https://github.com/robottwo/bishop/commit/528ff158971506634507c7792ebbf386da209070))
 
-## [0.26.1](https://github.com/robottwo/gsh_prime/compare/v0.26.0...v0.26.1) (2025-12-17)
+## [0.26.1](https://github.com/robottwo/bishop/compare/v0.26.0...v0.26.1) (2025-12-17)
 
 
 ### Features
 
-* Claude/gamified productivity coach ([#58](https://github.com/robottwo/gsh_prime/issues/58)) ([ce7c3ff](https://github.com/robottwo/gsh_prime/commit/ce7c3ff4902f4d821bedfc80da31745f50e048ae))
-* Assistant Box Border Status UI ([#57](https://github.com/robottwo/gsh_prime/issues/57)) ([137fad6](https://github.com/robottwo/gsh_prime/commit/137fad678624eda803b24372cee2cca03dd35b16))
-* Add history search sort toggle (Ctrl+O) ([#56](https://github.com/robottwo/gsh_prime/issues/56)) ([45881a2](https://github.com/robottwo/gsh_prime/commit/45881a28a1be08651dd7111684328d14391b3fca))
+* Claude/gamified productivity coach ([#58](https://github.com/robottwo/bishop/issues/58)) ([ce7c3ff](https://github.com/robottwo/bishop/commit/ce7c3ff4902f4d821bedfc80da31745f50e048ae))
+* Assistant Box Border Status UI ([#57](https://github.com/robottwo/bishop/issues/57)) ([137fad6](https://github.com/robottwo/bishop/commit/137fad678624eda803b24372cee2cca03dd35b16))
+* Add history search sort toggle (Ctrl+O) ([#56](https://github.com/robottwo/bishop/issues/56)) ([45881a2](https://github.com/robottwo/bishop/commit/45881a28a1be08651dd7111684328d14391b3fca))
 
 ### Bug Fixes
 
-* Fix DST transitions and improve coach robustness ([#59](https://github.com/robottwo/gsh_prime/issues/59)) ([4e5e6e7](https://github.com/robottwo/gsh_prime/commit/4e5e6e79cef7eab83dadb9bc0c18b76ae37b4a9d))
-* detect Unicode character width at runtime for Assistant Box ([#54](https://github.com/robottwo/gsh_prime/issues/54)) ([bd1ed47](https://github.com/robottwo/gsh_prime/commit/bd1ed479483f97176cddfcfb7e6521f14f3777f5))
-* fix provider integration test ([#53](https://github.com/robottwo/gsh_prime/issues/53)) ([bafae69](https://github.com/robottwo/gsh_prime/commit/bafae699c6ec93f500af0104a49f38efc32aac31))
+* Fix DST transitions and improve coach robustness ([#59](https://github.com/robottwo/bishop/issues/59)) ([4e5e6e7](https://github.com/robottwo/bishop/commit/4e5e6e79cef7eab83dadb9bc0c18b76ae37b4a9d))
+* detect Unicode character width at runtime for Assistant Box ([#54](https://github.com/robottwo/bishop/issues/54)) ([bd1ed47](https://github.com/robottwo/bishop/commit/bd1ed479483f97176cddfcfb7e6521f14f3777f5))
+* fix provider integration test ([#53](https://github.com/robottwo/bishop/issues/53)) ([bafae69](https://github.com/robottwo/bishop/commit/bafae699c6ec93f500af0104a49f38efc32aac31))
 
-## [0.26.0](https://github.com/robottwo/gsh_prime/compare/0.25.10...v0.26.0) (2025-12-01)
+## [0.26.0](https://github.com/robottwo/bishop/compare/0.25.10...v0.26.0) (2025-12-01)
 
 
 ### Features
@@ -60,12 +60,12 @@
 * Add context-sensitive completions for macro and builtin command prefixes ([57466dc](https://github.com/atinylittleshell/gsh/commit/57466dc))
 * Improve Ctrl+C handling and interrupt detection in gline app ([cada44d](https://github.com/atinylittleshell/gsh/commit/cada44d))
 * Add basic Nix flake support ([9cc2e03](https://github.com/atinylittleshell/gsh/commit/9cc2e03))
-* add LLM loading indicators to Assistant Box ([#45](https://github.com/robottwo/gsh_prime/issues/45)) ([426a385](https://github.com/robottwo/gsh_prime/commit/426a3851f428b22b93942f6c2306abbffaec8689))
-* add LLM-based tab completion ([#22](https://github.com/robottwo/gsh_prime/issues/22)) ([05511ae](https://github.com/robottwo/gsh_prime/commit/05511ae12f6c8637c8c7a49fecad3ab3ab27b6d8))
-* **bash:** add typeset/declare command compatibility ([#10](https://github.com/robottwo/gsh_prime/issues/10)) ([15a8fe9](https://github.com/robottwo/gsh_prime/commit/15a8fe902357b5e15079eaa2e0429d012792bdfb))
-* Improve agent output styling and order ([#26](https://github.com/robottwo/gsh_prime/issues/26)) ([535e324](https://github.com/robottwo/gsh_prime/commit/535e32476394f2ce80831622fa5d915d6fb95758))
-* improve subagent syntax and prompt feedback ([#18](https://github.com/robottwo/gsh_prime/issues/18)) ([eb40d7f](https://github.com/robottwo/gsh_prime/commit/eb40d7fd4edb4d0f8ac5397d7b94a3a0f73ac174))
-* rich TUI history search ([#43](https://github.com/robottwo/gsh_prime/issues/43)) ([02b2fb0](https://github.com/robottwo/gsh_prime/commit/02b2fb051cf184e38cb98c5640c65ebb1d0164a6))
+* add LLM loading indicators to Assistant Box ([#45](https://github.com/robottwo/bishop/issues/45)) ([426a385](https://github.com/robottwo/bishop/commit/426a3851f428b22b93942f6c2306abbffaec8689))
+* add LLM-based tab completion ([#22](https://github.com/robottwo/bishop/issues/22)) ([05511ae](https://github.com/robottwo/bishop/commit/05511ae12f6c8637c8c7a49fecad3ab3ab27b6d8))
+* **bash:** add typeset/declare command compatibility ([#10](https://github.com/robottwo/bishop/issues/10)) ([15a8fe9](https://github.com/robottwo/bishop/commit/15a8fe902357b5e15079eaa2e0429d012792bdfb))
+* Improve agent output styling and order ([#26](https://github.com/robottwo/bishop/issues/26)) ([535e324](https://github.com/robottwo/bishop/commit/535e32476394f2ce80831622fa5d915d6fb95758))
+* improve subagent syntax and prompt feedback ([#18](https://github.com/robottwo/bishop/issues/18)) ([eb40d7f](https://github.com/robottwo/bishop/commit/eb40d7fd4edb4d0f8ac5397d7b94a3a0f73ac174))
+* rich TUI history search ([#43](https://github.com/robottwo/bishop/issues/43)) ([02b2fb0](https://github.com/robottwo/bishop/commit/02b2fb051cf184e38cb98c5640c65ebb1d0164a6))
 
 ### Bug Fixes
 
@@ -484,7 +484,7 @@
 
 ### Bug Fixes
 
-* always start output messages with gsh: ([a7e3331](https://github.com/atinylittleshell/gsh/commit/a7e33317a2fcd3f247be26238f0317211f2cd9d1))
+* always start output messages with bish: ([a7e3331](https://github.com/atinylittleshell/gsh/commit/a7e33317a2fcd3f247be26238f0317211f2cd9d1))
 * improve login shell detection ([6623ad6](https://github.com/atinylittleshell/gsh/commit/6623ad64d5fe483514a331625fa76aa785d67394))
 
 ## [0.5.0](https://github.com/atinylittleshell/gsh/compare/v0.4.2...v0.5.0) (2025-01-03)
@@ -514,10 +514,10 @@
 
 ### Features
 
-* add configurable minimum shell prompt height\n\nIntroduced a new environment variable GSH_MINIMUM_HEIGHT to configure the minimum number of lines the shell prompt occupies. Updated the shell and environment components to utilize this new configuration. ([5aa0abc](https://github.com/atinylittleshell/gsh/commit/5aa0abc77718705d1aa64b4c92ec5f21407558bb))
+* add configurable minimum shell prompt height\n\nIntroduced a new environment variable BISH_MINIMUM_HEIGHT to configure the minimum number of lines the shell prompt occupies. Updated the shell and environment components to utilize this new configuration. ([5aa0abc](https://github.com/atinylittleshell/gsh/commit/5aa0abc77718705d1aa64b4c92ec5f21407558bb))
 * allow backspace to clear prediction at empty input ([428330a](https://github.com/atinylittleshell/gsh/commit/428330a52e746e6cc5bc0c54ccdcb2bb57a9e7fb))
 * attemp to produce homebrew tap ([983197b](https://github.com/atinylittleshell/gsh/commit/983197b45824ebcd0cf348c6d3923018a6383e84))
-* enhance shell prompt and command execution tracking\n\nUpdated .gshrc.starship for richer prompt details including command status and duration. Improved command execution tracking in shell.go and bash.go with duration and exit code handling. ([e16cb84](https://github.com/atinylittleshell/gsh/commit/e16cb8489d9465e601fa6bfbbab3f6d51f2e343a))
+* enhance shell prompt and command execution tracking\n\nUpdated .bishrc.starship for richer prompt details including command status and duration. Improved command execution tracking in shell.go and bash.go with duration and exit code handling. ([e16cb84](https://github.com/atinylittleshell/gsh/commit/e16cb8489d9465e601fa6bfbbab3f6d51f2e343a))
 
 
 ### Bug Fixes
@@ -533,7 +533,7 @@
 * add help flag to main command\n\nAdded a help flag (-h) to the main command to display usage information. Updated ROADMAP.md to reflect the reordering of tasks. ([452e017](https://github.com/atinylittleshell/gsh/commit/452e01720f30a03b0707a1464059951acaa067f6))
 * **agent:** add preview code edits feature\n\nImplemented a feature to preview code edits before applying them. Updated ROADMAP.md to reflect the completion of this task. ([826cd9e](https://github.com/atinylittleshell/gsh/commit/826cd9efb5ecb0588a88e233d31e4586180161d1))
 * **core:** add system info retriever and update roadmap\n\nAdded a new SystemInfoContextRetriever to the shell core for retrieving system information. Updated the ROADMAP.md to reflect recent changes and future plans. ([959f80f](https://github.com/atinylittleshell/gsh/commit/959f80f149a8ea567d6a6a44b245488a88921fb8))
-* implement message pruning for agent chat\n\nAdded a new function to prune agent messages based on a context window size defined by GSH_AGENT_CONTEXT_WINDOW_TOKENS. Updated .gshrc.default and added tests for the new functionality. ([909bb46](https://github.com/atinylittleshell/gsh/commit/909bb460f4ce8e9a68633d3e356630880ea86910))
+* implement message pruning for agent chat\n\nAdded a new function to prune agent messages based on a context window size defined by BISH_AGENT_CONTEXT_WINDOW_TOKENS. Updated .bishrc.default and added tests for the new functionality. ([909bb46](https://github.com/atinylittleshell/gsh/commit/909bb460f4ce8e9a68633d3e356630880ea86910))
 
 
 ### Bug Fixes
@@ -552,7 +552,7 @@
 
 * correctly clear preview after command execution ([8c0642e](https://github.com/atinylittleshell/gsh/commit/8c0642e9264807a442860e3e93f27da7cdd06d8d))
 * improve user confirmation handling in tools ([7a11590](https://github.com/atinylittleshell/gsh/commit/7a115909695ee9ce0485a4c1ff7a57dd21bd2f44))
-* update .gshrc.starship configuration ([9de5ec6](https://github.com/atinylittleshell/gsh/commit/9de5ec6c5df3ab25e3602619b15047bd870c2fd4))
+* update .bishrc.starship configuration ([9de5ec6](https://github.com/atinylittleshell/gsh/commit/9de5ec6c5df3ab25e3602619b15047bd870c2fd4))
 
 ## [0.1.0](https://github.com/atinylittleshell/gsh/compare/v0.0.1...v0.1.0) (2024-12-31)
 

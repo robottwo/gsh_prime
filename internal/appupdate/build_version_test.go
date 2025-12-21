@@ -145,11 +145,11 @@ func TestMakefileVersionInjection(t *testing.T) {
 			"Makefile should use go build command")
 
 		// Verify output location
-		assert.Contains(t, makefileContent, "./bin/gsh",
-			"Makefile should build to ./bin/gsh")
+		assert.Contains(t, makefileContent, "./bin/bish",
+			"Makefile should build to ./bin/bish")
 
 		// Verify main package location
-		assert.Contains(t, makefileContent, "./cmd/gsh/main.go",
+		assert.Contains(t, makefileContent, "./cmd/bish/main.go",
 			"Makefile should reference correct main package")
 	})
 }

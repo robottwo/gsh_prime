@@ -1,7 +1,7 @@
 package subagent
 
 import (
-	"github.com/atinylittleshell/gsh/internal/completion"
+	"github.com/robottwo/bishop/internal/completion"
 )
 
 // CompletionAdapter adapts SubagentManager to the completion.SubagentProvider interface

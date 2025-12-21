@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/pkg/gline"
 	"go.uber.org/zap"
 )
 

@@ -3,7 +3,7 @@ package retrievers
 import (
 	"fmt"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/robottwo/bishop/internal/environment"
 	"mvdan.cc/sh/v3/interp"
 )
 

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/robottwo/bishop/internal/environment"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ func TestPermissionPreselectionFix(t *testing.T) {
 
 	// Set up the authorized commands file path
 	authorizedFile := filepath.Join(tempDir, "authorized_commands")
-	t.Setenv("GSH_CONFIG_DIR", tempDir)
+	t.Setenv("BISH_CONFIG_DIR", tempDir)
 
 	// Use the testing helper functions to set the correct paths
 	environment.SetConfigDirForTesting(tempDir)

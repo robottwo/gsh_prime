@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"

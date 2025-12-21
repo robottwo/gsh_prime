@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $packageName = $env:ChocolateyPackageName
 $toolsDir = "$(Split-Path -Parent $MyInvocation.MyCommand.Definition)"
-$url64 = 'https://github.com/robottwo/gsh_prime/releases/download/v0.26.0/gsh_Windows_x86_64.zip'
+$url64 = 'https://github.com/robottwo/bishop/releases/download/v0.26.0/bish_Windows_x86_64.zip'
 
 $packageArgs = @{
   packageName   = $packageName
@@ -14,8 +14,8 @@ $packageArgs = @{
 
 Install-ChocolateyZipPackage @packageArgs
 
-# Create shim for gsh.exe
-$gshPath = Join-Path $toolsDir 'gsh.exe'
-if (Test-Path $gshPath) {
-  Write-Host "gsh installed successfully to $gshPath"
+# Create shim for bish.exe
+$bishPath = Join-Path $toolsDir 'bish.exe'
+if (Test-Path $bishPath) {
+  Write-Host "bish installed successfully to $bishPath"
 }

@@ -1,4 +1,4 @@
-module github.com/atinylittleshell/gsh
+module github.com/robottwo/bishop
 
 go 1.23.0
 

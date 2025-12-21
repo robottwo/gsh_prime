@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -649,7 +649,7 @@ func TestGetFileCompletions_TildePrefix_Integration(t *testing.T) {
 	}
 
 	// Create a test hidden file in home directory
-	testHiddenFile := filepath.Join(homeDir, ".gsh_test_hidden_file")
+	testHiddenFile := filepath.Join(homeDir, ".bish_test_hidden_file")
 	err = os.WriteFile(testHiddenFile, []byte("test"), 0644)
 	require.NoError(t, err)
 	t.Cleanup(func() {
@@ -704,8 +704,8 @@ func TestGetFileCompletions_TildePrefix_Integration(t *testing.T) {
 		completions := getFileCompletions("~/.", "/some/other/dir")
 
 		// Should find our test hidden file
-		assert.True(t, containsCompletion(completions, norm("~/.gsh_test_hidden_file")),
-			"Expected to find ~/.gsh_test_hidden_file with '~/.' prefix, got: %v", completions)
+		assert.True(t, containsCompletion(completions, norm("~/.bish_test_hidden_file")),
+			"Expected to find ~/.bish_test_hidden_file with '~/.' prefix, got: %v", completions)
 
 		// Should NOT find visible files (they don't start with ".")
 		assert.False(t, containsCompletion(completions, norm("~/gsh_test_visible_file")),

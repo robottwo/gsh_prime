@@ -3,12 +3,12 @@ all: ci
 
 .PHONY: build
 build:
-	@echo "=== Building gsh ==="
+	@echo "=== Building bishop ==="
 	@VERSION=$$(cat VERSION) && echo "Building version v$$VERSION..." && \
 	echo "Compiling..." && \
-	go build -ldflags="-X main.BUILD_VERSION=v$$VERSION" -o ./bin/gsh ./cmd/gsh/main.go && \
+	go build -ldflags="-X main.BUILD_VERSION=v$$VERSION" -o ./bin/bish ./cmd/bish/main.go && \
 	echo "✓ Compilation completed successfully!" && \
-	echo "Binary created: ./bin/gsh"
+	echo "Binary created: ./bin/bish"
 
 .PHONY: test
 test:

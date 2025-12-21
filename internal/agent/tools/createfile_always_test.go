@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/robottwo/bishop/internal/environment"
 	"go.uber.org/zap"
 )
 

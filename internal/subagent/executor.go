@@ -9,11 +9,11 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/agent/tools"
-	"github.com/atinylittleshell/gsh/internal/history"
-	"github.com/atinylittleshell/gsh/internal/styles"
-	"github.com/atinylittleshell/gsh/internal/utils"
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/internal/agent/tools"
+	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/internal/utils"
+	"github.com/robottwo/bishop/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/expand"
@@ -178,7 +178,7 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 		// Set prompt for subagent execution
 		// We must use the runner to set the variable so that it persists correctly
 		// across tool execution calls (which use runner.Run and might overwrite Vars)
-		originalPromptVar := e.runner.Vars["GSH_APROMPT"]
+		originalPromptVar := e.runner.Vars["BISH_APROMPT"]
 		originalPrompt := ""
 		if originalPromptVar.IsSet() {
 			originalPrompt = originalPromptVar.String()
@@ -220,11 +220,11 @@ func (e *SubagentExecutor) Chat(prompt string) (<-chan string, error) {
 		}
 
 		// Set the prompt
-		setVar("GSH_APROMPT", subagentPrompt)
+		setVar("BISH_APROMPT", subagentPrompt)
 
 		// Restore prompt when done
 		defer func() {
-			setVar("GSH_APROMPT", originalPrompt)
+			setVar("BISH_APROMPT", originalPrompt)
 		}()
 
 		for continueSession {

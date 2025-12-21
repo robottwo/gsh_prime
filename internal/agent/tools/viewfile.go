@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/utils"
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/utils"
+	"github.com/robottwo/bishop/pkg/gline"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
@@ -23,7 +23,7 @@ var ViewFileToolDefinition = openai.Tool{
 	Type: "function",
 	Function: &openai.FunctionDefinition{
 		Name:        "view_file",
-		Description: fmt.Sprintf(`View the content of a text file, at most %d lines at a time. If the content is too large, tail will be truncated and replaced with <gsh:truncated />.`, LINES_TO_READ),
+		Description: fmt.Sprintf(`View the content of a text file, at most %d lines at a time. If the content is too large, tail will be truncated and replaced with <bish:truncated />.`, LINES_TO_READ),
 		Parameters: utils.GenerateJsonSchema(struct {
 			Path      string `json:"path" description:"Absolute path to the file" required:"true"`
 			StartLine int    `json:"start_line" description:"Optional. Line number to start viewing. The first line in the file has line number 1. If not provided, we will read from the beginning of the file." required:"false"`
@@ -91,7 +91,7 @@ func ViewFileTool(runner *interp.Runner, logger *zap.Logger, params map[string]a
 	// convert 1-based line numbers to 0-based indexes
 	result := strings.Join(lines[startLine-1:endLine-1], "\n")
 	if len(result) > MAX_VIEW_SIZE {
-		return result[:MAX_VIEW_SIZE] + "\n<gsh:truncated />"
+		return result[:MAX_VIEW_SIZE] + "\n<bish:truncated />"
 	}
 
 	return result

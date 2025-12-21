@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/robottwo/bishop/internal/environment"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -124,7 +124,7 @@ func TestUserReportedIssueWithEnvironmentVariable(t *testing.T) {
 	}
 
 	// Simulate the user having a broad environment variable pattern
-	runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+	runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 		Kind: expand.String,
 		Str:  `[".*"]`, // This would allow everything - simulating a potential security issue
 	}
@@ -220,7 +220,7 @@ func TestEnvironmentVariablePatternFiltering(t *testing.T) {
 				}
 				patternsJSON += `"]`
 
-				runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+				runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 					Kind: expand.String,
 					Str:  patternsJSON,
 				}

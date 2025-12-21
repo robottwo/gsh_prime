@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 )
 
 // DefaultCompleter handles built-in default completions for common commands

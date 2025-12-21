@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"mvdan.cc/sh/v3/expand"
@@ -170,7 +170,7 @@ func TestShellCompletionProvider_MacroCompletion_Integration(t *testing.T) {
 	}`
 
 	runner.Vars = map[string]expand.Variable{
-		"GSH_AGENT_MACROS": {Kind: expand.String, Str: macrosJSON},
+		"BISH_AGENT_MACROS": {Kind: expand.String, Str: macrosJSON},
 	}
 
 	manager := &mockCompletionManager{}
@@ -460,7 +460,7 @@ func TestShellCompletionProvider_HelpInfo_Integration(t *testing.T) {
 	}`
 
 	runner.Vars = map[string]expand.Variable{
-		"GSH_AGENT_MACROS": {Kind: expand.String, Str: macrosJSON},
+		"BISH_AGENT_MACROS": {Kind: expand.String, Str: macrosJSON},
 	}
 
 	manager := NewCompletionManager()
@@ -619,7 +619,7 @@ echo '{"Value":"global-option3","Description":"json desc"}'
 	err = os.WriteFile(scriptPath, []byte(scriptContent), 0755)
 	require.NoError(t, err)
 
-	t.Setenv("GSH_COMPLETION_COMMAND", scriptPath)
+	t.Setenv("BISH_COMPLETION_COMMAND", scriptPath)
 
 	tests := []struct {
 		name          string

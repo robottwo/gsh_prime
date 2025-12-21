@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/bash"
+	"github.com/robottwo/bishop/internal/bash"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )

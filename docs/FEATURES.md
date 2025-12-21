@@ -1,9 +1,9 @@
 # Features
 
-gsh_prime focuses on a fast development cadence while remaining compatible with upstream gsh. This document provides concise, actionable details on the core features.
+bishop focuses on a fast development cadence while remaining compatible with upstream gsh. This document provides concise, actionable details on the core features.
 
 Upstream project: https://github.com/atinylittleshell/gsh  
-Fork repository: https://github.com/robottwo/gsh_prime
+Fork repository: https://github.com/robottwo/bishop
 
 ## Overview
 
@@ -84,10 +84,10 @@ You can choose your model provider based on privacy and performance needs:
 - Local: via [Ollama](https://ollama.com/)
 - Remote: any OpenAI-compatible endpoint, e.g. [OpenRouter](https://openrouter.ai/)
 
-Configure via environment variables and your `~/.gshrc`. See examples in:
-- Defaults: [../cmd/gsh/.gshrc.default](../cmd/gsh/.gshrc.default)
-- Starship prompt: [../cmd/gsh/.gshrc.starship](../cmd/gsh/.gshrc.starship)
-- Loader reference: [../cmd/gsh/main.go](../cmd/gsh/main.go)
+Configure via environment variables and your `~/.bishrc`. See examples in:
+- Defaults: [../cmd/bish/.bishrc.default](../cmd/bish/.bishrc.default)
+- Starship prompt: [../cmd/bish/.bishrc.starship](../cmd/bish/.bishrc.starship)
+- Loader reference: [../cmd/bish/main.go](../cmd/bish/main.go)
 
 More details: [CONFIGURATION.md](CONFIGURATION.md)
 
@@ -165,7 +165,7 @@ More in: [AGENT.md](AGENT.md)
 
 See [../ROADMAP.md](../ROADMAP.md) for planned improvements. Contributions welcome:
 - Fork workflow and upstream PR strategy: [../CONTRIBUTING.md](../CONTRIBUTING.md)
-- Issues: https://github.com/robottwo/gsh_prime/issues
+- Issues: https://github.com/robottwo/bishop/issues
 
 ---
 

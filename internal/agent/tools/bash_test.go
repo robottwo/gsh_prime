@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/history"
 	openai "github.com/sashabaranov/go-openai"
 	"github.com/sashabaranov/go-openai/jsonschema"
 	"github.com/stretchr/testify/assert"

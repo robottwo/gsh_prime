@@ -4,8 +4,8 @@ import (
 	"context"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/completion"
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/internal/completion"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"mvdan.cc/sh/v3/interp"
 )
 

@@ -12,8 +12,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"mvdan.cc/sh/v3/interp"
 )
 
@@ -131,8 +131,8 @@ func (p *ShellCompletionProvider) GetCompletions(line string, pos int) []shellin
 		return suggestions
 	}
 
-	// 3. Global Programmable Fallback (GSH_COMPLETION_COMMAND or Auto-Discovery)
-	globalCompleter := os.Getenv("GSH_COMPLETION_COMMAND")
+	// 3. Global Programmable Fallback (BISH_COMPLETION_COMMAND or Auto-Discovery)
+	globalCompleter := os.Getenv("BISH_COMPLETION_COMMAND")
 	if globalCompleter == "" {
 		// Auto-discovery: Check for carapace
 		if path, err := execLookPath("carapace"); err == nil {
@@ -450,10 +450,10 @@ func (p *ShellCompletionProvider) getCurrentWordBoundary(line string, pos int) (
 func (p *ShellCompletionProvider) getMacroCompletions(prefix string) []string {
 	var macrosStr string
 	if p.Runner != nil {
-		macrosStr = p.Runner.Vars["GSH_AGENT_MACROS"].String()
+		macrosStr = p.Runner.Vars["BISH_AGENT_MACROS"].String()
 	} else {
 		// Fallback to environment variable for testing
-		macrosStr = os.Getenv("GSH_AGENT_MACROS")
+		macrosStr = os.Getenv("BISH_AGENT_MACROS")
 	}
 
 	if macrosStr == "" {
@@ -808,10 +808,10 @@ func (p *ShellCompletionProvider) getBuiltinCommandHelp(command string) string {
 func (p *ShellCompletionProvider) getMacroHelp(macroName string) string {
 	var macrosStr string
 	if p.Runner != nil {
-		macrosStr = p.Runner.Vars["GSH_AGENT_MACROS"].String()
+		macrosStr = p.Runner.Vars["BISH_AGENT_MACROS"].String()
 	} else {
 		// Fallback to environment variable for testing
-		macrosStr = os.Getenv("GSH_AGENT_MACROS")
+		macrosStr = os.Getenv("BISH_AGENT_MACROS")
 	}
 
 	if macrosStr == "" {

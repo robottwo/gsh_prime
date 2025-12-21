@@ -1,7 +1,7 @@
 package completion
 
 import (
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 )
 
 // StaticCompleter handles static word lists for common commands

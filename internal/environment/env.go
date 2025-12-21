@@ -22,7 +22,7 @@ var (
 	authorizedCommandsCache      []string
 	authorizedCommandsCacheMutex sync.RWMutex
 	lastFileModTime              time.Time
-	configDir                    = filepath.Join(os.Getenv("HOME"), ".config", "gsh")
+	configDir                    = filepath.Join(os.Getenv("HOME"), ".config", "bish")
 	authorizedCommandsFile       = filepath.Join(configDir, "authorized_commands")
 )
 
@@ -50,16 +50,16 @@ const (
 
 func GetHistoryContextLimit(runner *interp.Runner, logger *zap.Logger) int {
 	historyContextLimit, err := strconv.ParseInt(
-		runner.Vars["GSH_PAST_COMMANDS_CONTEXT_LIMIT"].String(), 10, 32)
+		runner.Vars["BISH_PAST_COMMANDS_CONTEXT_LIMIT"].String(), 10, 32)
 	if err != nil {
-		logger.Debug("error parsing GSH_PAST_COMMANDS_CONTEXT_LIMIT", zap.Error(err))
+		logger.Debug("error parsing BISH_PAST_COMMANDS_CONTEXT_LIMIT", zap.Error(err))
 		historyContextLimit = 30
 	}
 	return int(historyContextLimit)
 }
 
 func GetLogLevel(runner *interp.Runner) zap.AtomicLevel {
-	logLevel, err := zap.ParseAtomicLevel(runner.Vars["GSH_LOG_LEVEL"].String())
+	logLevel, err := zap.ParseAtomicLevel(runner.Vars["BISH_LOG_LEVEL"].String())
 	if err != nil {
 		logLevel = zap.NewAtomicLevel()
 	}
@@ -67,14 +67,14 @@ func GetLogLevel(runner *interp.Runner) zap.AtomicLevel {
 }
 
 func ShouldCleanLogFile(runner *interp.Runner) bool {
-	cleanLogFile := strings.ToLower(runner.Vars["GSH_CLEAN_LOG_FILE"].String())
+	cleanLogFile := strings.ToLower(runner.Vars["BISH_CLEAN_LOG_FILE"].String())
 	return cleanLogFile == "1" || cleanLogFile == "true"
 }
 
 // GetDefaultToYes returns whether prompts should default to "yes" when Enter is pressed.
 // When true, prompts display [Y/n] and Enter confirms. When false, prompts display [y/N] and Enter denies.
 func GetDefaultToYes(runner *interp.Runner) bool {
-	defaultToYes := strings.ToLower(runner.Vars["GSH_DEFAULT_TO_YES"].String())
+	defaultToYes := strings.ToLower(runner.Vars["BISH_DEFAULT_TO_YES"].String())
 	return defaultToYes == "1" || defaultToYes == "true"
 }
 
@@ -94,7 +94,7 @@ func GetUser(runner *interp.Runner) string {
 }
 
 func GetPrompt(runner *interp.Runner, logger *zap.Logger) string {
-	promptUpdater := runner.Funcs["GSH_UPDATE_PROMPT"]
+	promptUpdater := runner.Funcs["BISH_UPDATE_PROMPT"]
 	if promptUpdater != nil {
 		err := runner.Run(context.Background(), promptUpdater)
 		if err != nil {
@@ -102,14 +102,14 @@ func GetPrompt(runner *interp.Runner, logger *zap.Logger) string {
 		}
 	}
 
-	buildVersion := runner.Vars["GSH_BUILD_VERSION"].String()
+	buildVersion := runner.Vars["BISH_BUILD_VERSION"].String()
 	if buildVersion == "dev" {
 		buildVersion = "[dev] "
 	} else {
 		buildVersion = ""
 	}
 
-	prompt := buildVersion + runner.Vars["GSH_PROMPT"].String()
+	prompt := buildVersion + runner.Vars["BISH_PROMPT"].String()
 	if prompt != "" {
 		return prompt
 	}
@@ -117,30 +117,30 @@ func GetPrompt(runner *interp.Runner, logger *zap.Logger) string {
 }
 
 // GetAgentPrompt returns the prompt to use when the agent displays commands
-// If GSH_APROMPT is set, it uses that; otherwise uses DEFAULT_AGENT_PROMPT
+// If BISH_APROMPT is set, it uses that; otherwise uses DEFAULT_AGENT_PROMPT
 // to differentiate agent commands from user commands
 func GetAgentPrompt(runner *interp.Runner) string {
-	agentPrompt := runner.Vars["GSH_APROMPT"].String()
+	agentPrompt := runner.Vars["BISH_APROMPT"].String()
 	if agentPrompt != "" {
 		return agentPrompt
 	}
 	return DEFAULT_AGENT_PROMPT
 }
 
-// GetAgentName returns the name of the active subagent or defaults to "gsh"
+// GetAgentName returns the name of the active subagent or defaults to "bish"
 func GetAgentName(runner *interp.Runner) string {
-	agentName := runner.Vars["GSH_AGENT_NAME"].String()
+	agentName := runner.Vars["BISH_AGENT_NAME"].String()
 	if agentName != "" {
 		return agentName
 	}
-	return "gsh"
+	return "bish"
 }
 
 func GetAgentContextWindowTokens(runner *interp.Runner, logger *zap.Logger) int {
 	agentContextWindow, err := strconv.ParseInt(
-		runner.Vars["GSH_AGENT_CONTEXT_WINDOW_TOKENS"].String(), 10, 32)
+		runner.Vars["BISH_AGENT_CONTEXT_WINDOW_TOKENS"].String(), 10, 32)
 	if err != nil {
-		logger.Debug("error parsing GSH_AGENT_CONTEXT_WINDOW_TOKENS", zap.Error(err))
+		logger.Debug("error parsing BISH_AGENT_CONTEXT_WINDOW_TOKENS", zap.Error(err))
 		agentContextWindow = 32768
 	}
 	return int(agentContextWindow)
@@ -148,19 +148,19 @@ func GetAgentContextWindowTokens(runner *interp.Runner, logger *zap.Logger) int 
 
 func GetAssistantHeight(runner *interp.Runner, logger *zap.Logger) int {
 	// Check for session override first (set via config UI, immune to bash script resets)
-	rawValue := runner.Vars["GSH_ASSISTANT_HEIGHT"].String()
-	if override, ok := getSessionConfigOverride("GSH_ASSISTANT_HEIGHT"); ok {
+	rawValue := runner.Vars["BISH_ASSISTANT_HEIGHT"].String()
+	if override, ok := getSessionConfigOverride("BISH_ASSISTANT_HEIGHT"); ok {
 		rawValue = override
 	}
 
 	assistantHeight, err := strconv.ParseInt(rawValue, 10, 32)
 	if err != nil {
-		logger.Debug("error parsing GSH_ASSISTANT_HEIGHT", zap.Error(err))
+		logger.Debug("error parsing BISH_ASSISTANT_HEIGHT", zap.Error(err))
 		assistantHeight = 3
 	}
 
 	if assistantHeight < 0 {
-		logger.Debug("GSH_ASSISTANT_HEIGHT is negative, clamping to 0",
+		logger.Debug("BISH_ASSISTANT_HEIGHT is negative, clamping to 0",
 			zap.Int64("assistantHeight", assistantHeight))
 		assistantHeight = 0
 	}
@@ -191,26 +191,26 @@ func getContextTypes(runner *interp.Runner, key string) []string {
 }
 
 func GetContextTypesForAgent(runner *interp.Runner, logger *zap.Logger) []string {
-	return getContextTypes(runner, "GSH_CONTEXT_TYPES_FOR_AGENT")
+	return getContextTypes(runner, "BISH_CONTEXT_TYPES_FOR_AGENT")
 }
 
 func GetContextTypesForPredictionWithPrefix(runner *interp.Runner, logger *zap.Logger) []string {
-	return getContextTypes(runner, "GSH_CONTEXT_TYPES_FOR_PREDICTION_WITH_PREFIX")
+	return getContextTypes(runner, "BISH_CONTEXT_TYPES_FOR_PREDICTION_WITH_PREFIX")
 }
 
 func GetContextTypesForPredictionWithoutPrefix(runner *interp.Runner, logger *zap.Logger) []string {
-	return getContextTypes(runner, "GSH_CONTEXT_TYPES_FOR_PREDICTION_WITHOUT_PREFIX")
+	return getContextTypes(runner, "BISH_CONTEXT_TYPES_FOR_PREDICTION_WITHOUT_PREFIX")
 }
 
 func GetContextTypesForExplanation(runner *interp.Runner, logger *zap.Logger) []string {
-	return getContextTypes(runner, "GSH_CONTEXT_TYPES_FOR_EXPLANATION")
+	return getContextTypes(runner, "BISH_CONTEXT_TYPES_FOR_EXPLANATION")
 }
 
 func GetContextNumHistoryConcise(runner *interp.Runner, logger *zap.Logger) int {
 	numHistoryConcise, err := strconv.ParseInt(
-		runner.Vars["GSH_CONTEXT_NUM_HISTORY_CONCISE"].String(), 10, 32)
+		runner.Vars["BISH_CONTEXT_NUM_HISTORY_CONCISE"].String(), 10, 32)
 	if err != nil {
-		logger.Debug("error parsing GSH_CONTEXT_NUM_HISTORY_CONCISE", zap.Error(err))
+		logger.Debug("error parsing BISH_CONTEXT_NUM_HISTORY_CONCISE", zap.Error(err))
 		numHistoryConcise = 30
 	}
 	return int(numHistoryConcise)
@@ -218,9 +218,9 @@ func GetContextNumHistoryConcise(runner *interp.Runner, logger *zap.Logger) int 
 
 func GetContextNumHistoryVerbose(runner *interp.Runner, logger *zap.Logger) int {
 	numHistoryVerbose, err := strconv.ParseInt(
-		runner.Vars["GSH_CONTEXT_NUM_HISTORY_VERBOSE"].String(), 10, 32)
+		runner.Vars["BISH_CONTEXT_NUM_HISTORY_VERBOSE"].String(), 10, 32)
 	if err != nil {
-		logger.Debug("error parsing GSH_CONTEXT_NUM_HISTORY_VERBOSE", zap.Error(err))
+		logger.Debug("error parsing BISH_CONTEXT_NUM_HISTORY_VERBOSE", zap.Error(err))
 		numHistoryVerbose = 30
 	}
 	return int(numHistoryVerbose)
@@ -229,14 +229,14 @@ func GetContextNumHistoryVerbose(runner *interp.Runner, logger *zap.Logger) int 
 // GetIdleSummaryTimeout returns the idle summary timeout in seconds.
 // Returns 0 if disabled, otherwise defaults to 60 seconds.
 func GetIdleSummaryTimeout(runner *interp.Runner, logger *zap.Logger) int {
-	timeoutStr := runner.Vars["GSH_IDLE_SUMMARY_TIMEOUT_SECONDS"].String()
+	timeoutStr := runner.Vars["BISH_IDLE_SUMMARY_TIMEOUT_SECONDS"].String()
 	if timeoutStr == "" {
 		return 60 // Default to 60 seconds
 	}
 
 	timeout, err := strconv.ParseInt(timeoutStr, 10, 32)
 	if err != nil {
-		logger.Debug("error parsing GSH_IDLE_SUMMARY_TIMEOUT_SECONDS", zap.Error(err))
+		logger.Debug("error parsing BISH_IDLE_SUMMARY_TIMEOUT_SECONDS", zap.Error(err))
 		return 60 // Default to 60 seconds on parse error
 	}
 
@@ -248,7 +248,7 @@ func GetHomeDir(runner *interp.Runner) string {
 }
 
 func GetAgentMacros(runner *interp.Runner, logger *zap.Logger) map[string]string {
-	macrosStr := runner.Vars["GSH_AGENT_MACROS"].String()
+	macrosStr := runner.Vars["BISH_AGENT_MACROS"].String()
 	if macrosStr == "" {
 		return map[string]string{}
 	}
@@ -256,7 +256,7 @@ func GetAgentMacros(runner *interp.Runner, logger *zap.Logger) map[string]string
 	var macros map[string]string
 	err := json.Unmarshal([]byte(macrosStr), &macros)
 	if err != nil {
-		logger.Debug("error parsing GSH_AGENT_MACROS", zap.Error(err))
+		logger.Debug("error parsing BISH_AGENT_MACROS", zap.Error(err))
 		return map[string]string{}
 	}
 	return macros
@@ -475,25 +475,25 @@ func filterDangerousPatterns(patterns []string, logger *zap.Logger) []string {
 func GetApprovedBashCommandRegex(runner *interp.Runner, logger *zap.Logger) []string {
 	// Check if safety checks are disabled for this session (set via config UI)
 	// This is a session-only setting that is not persisted
-	if runner.Vars["GSH_SAFETY_CHECKS_DISABLED"].String() == "true" {
+	if runner.Vars["BISH_SAFETY_CHECKS_DISABLED"].String() == "true" {
 		logger.Debug("safety checks disabled for this session")
 		return []string{".*"}
 	}
 
 	// Get patterns from environment variable
-	regexStr := runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"].String()
-	logger.Debug("GSH_AGENT_APPROVED_BASH_COMMAND_REGEX value", zap.String("value", regexStr))
+	regexStr := runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"].String()
+	logger.Debug("BISH_AGENT_APPROVED_BASH_COMMAND_REGEX value", zap.String("value", regexStr))
 	var envPatterns []string
 	if regexStr != "" {
 		err := json.Unmarshal([]byte(regexStr), &envPatterns)
 		if err != nil {
-			logger.Debug("error parsing GSH_AGENT_APPROVED_BASH_COMMAND_REGEX", zap.Error(err))
+			logger.Debug("error parsing BISH_AGENT_APPROVED_BASH_COMMAND_REGEX", zap.Error(err))
 			envPatterns = []string{}
 		} else {
 			logger.Debug("successfully parsed environment patterns", zap.Any("patterns", envPatterns))
 		}
 	} else {
-		logger.Debug("GSH_AGENT_APPROVED_BASH_COMMAND_REGEX is empty")
+		logger.Debug("BISH_AGENT_APPROVED_BASH_COMMAND_REGEX is empty")
 		envPatterns = []string{}
 	}
 

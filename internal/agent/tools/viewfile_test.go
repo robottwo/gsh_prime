@@ -17,7 +17,7 @@ func TestViewFileToolDefinition(t *testing.T) {
 	assert.Equal(t, "view_file", ViewFileToolDefinition.Function.Name)
 	assert.Equal(
 		t,
-		"View the content of a text file, at most 100 lines at a time. If the content is too large, tail will be truncated and replaced with <gsh:truncated />.",
+		"View the content of a text file, at most 100 lines at a time. If the content is too large, tail will be truncated and replaced with <bish:truncated />.",
 		ViewFileToolDefinition.Function.Description,
 	)
 	parameters, ok := ViewFileToolDefinition.Function.Parameters.(*jsonschema.Definition)
@@ -93,6 +93,6 @@ func TestViewFileTool(t *testing.T) {
 
 		params := map[string]any{"path": tempLargeFile.Name()}
 		result := ViewFileTool(runner, logger, params)
-		assert.Contains(t, result, "<gsh:truncated />")
+		assert.Contains(t, result, "<bish:truncated />")
 	})
 }

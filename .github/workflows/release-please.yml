@@ -60,9 +60,9 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ needs.release-please.outputs.version }}"
-          $url = "https://github.com/robottwo/gsh_prime/releases/download/v${version}/gsh_Windows_x86_64.zip"
-          Invoke-WebRequest -Uri $url -OutFile gsh_Windows_x86_64.zip
-          Expand-Archive -Path gsh_Windows_x86_64.zip -DestinationPath installer_files
+          $url = "https://github.com/robottwo/bishop/releases/download/v${version}/bish_Windows_x86_64.zip"
+          Invoke-WebRequest -Uri $url -OutFile bish_Windows_x86_64.zip
+          Expand-Archive -Path bish_Windows_x86_64.zip -DestinationPath installer_files
 
       - name: Prepare installer files
         shell: pwsh
@@ -74,7 +74,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ needs.release-please.outputs.version }}"
-          $env:GSH_VERSION = $version
+          $env:BISH_VERSION = $version
 
           # Copy the installer script to the build directory
           Copy-Item packaging/windows/installer.iss installer_files/
@@ -88,7 +88,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           $version = "${{ needs.release-please.outputs.version }}"
-          $installer = "installer_files/gsh_${version}_windows_x86_64_setup.exe"
+          $installer = "installer_files/bish_${version}_windows_x86_64_setup.exe"
           gh release upload "v${version}" $installer --clobber
 
   # Publish to Chocolatey (Windows package manager)
@@ -103,9 +103,9 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ needs.release-please.outputs.version }}"
-          $url = "https://github.com/robottwo/gsh_prime/releases/download/v${version}/gsh_Windows_x86_64.zip"
-          Invoke-WebRequest -Uri $url -OutFile gsh_Windows_x86_64.zip
-          $hash = (Get-FileHash -Path gsh_Windows_x86_64.zip -Algorithm SHA256).Hash
+          $url = "https://github.com/robottwo/bishop/releases/download/v${version}/bish_Windows_x86_64.zip"
+          Invoke-WebRequest -Uri $url -OutFile bish_Windows_x86_64.zip
+          $hash = (Get-FileHash -Path bish_Windows_x86_64.zip -Algorithm SHA256).Hash
           echo "CHECKSUM=$hash" >> $env:GITHUB_ENV
 
       - name: Update Chocolatey package files
@@ -115,9 +115,9 @@ jobs:
           $checksum = "${{ env.CHECKSUM }}"
 
           # Update nuspec version
-          $nuspec = Get-Content packaging/chocolatey/gsh.nuspec
+          $nuspec = Get-Content packaging/chocolatey/bish.nuspec
           $nuspec = $nuspec -replace '<version>.*</version>', "<version>$version</version>"
-          Set-Content packaging/chocolatey/gsh.nuspec $nuspec
+          Set-Content packaging/chocolatey/bish.nuspec $nuspec
 
           # Update install script with version and checksum
           $install = Get-Content packaging/chocolatey/tools/chocolateyinstall.ps1
@@ -130,7 +130,7 @@ jobs:
         run: |
           cd packaging/chocolatey
           choco pack
-          choco push gsh.${{ needs.release-please.outputs.version }}.nupkg --source https://push.chocolatey.org/ --api-key ${{ secrets.CHOCO_API_KEY }}
+          choco push bish.${{ needs.release-please.outputs.version }}.nupkg --source https://push.chocolatey.org/ --api-key ${{ secrets.CHOCO_API_KEY }}
         continue-on-error: true  # Don't fail the workflow if Chocolatey push fails
 
   # Submit to Windows Package Manager (winget)
@@ -142,9 +142,9 @@ jobs:
       - name: Submit to winget
         uses: vedantmgoyal9/winget-releaser@main
         with:
-          identifier: robottwo.gsh
+          identifier: robottwo.bish
           version: ${{ needs.release-please.outputs.version }}
-          installers-regex: 'gsh_Windows_x86_64\.zip$'
+          installers-regex: 'bish_Windows_x86_64\.zip$'
           token: ${{ secrets.WINGET_TOKEN }}
         continue-on-error: true  # Don't fail the workflow if winget submission fails
 
@@ -159,10 +159,10 @@ jobs:
       - name: Download macOS x86_64 release asset
         run: |
           version="${{ needs.release-please.outputs.version }}"
-          url="https://github.com/robottwo/gsh_prime/releases/download/v${version}/gsh_Darwin_x86_64.tar.gz"
-          curl -L -o gsh_Darwin_x86_64.tar.gz "$url"
+          url="https://github.com/robottwo/bishop/releases/download/v${version}/bish_Darwin_x86_64.tar.gz"
+          curl -L -o bish_Darwin_x86_64.tar.gz "$url"
           mkdir -p installer_files
-          tar -xzf gsh_Darwin_x86_64.tar.gz -C installer_files
+          tar -xzf bish_Darwin_x86_64.tar.gz -C installer_files
 
       - name: Prepare installer files
         run: |
@@ -180,7 +180,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${{ needs.release-please.outputs.version }}"
-          dmg="gsh_${version}_macos_x86_64.dmg"
+          dmg="bish_${version}_macos_x86_64.dmg"
           gh release upload "v${version}" "$dmg" --clobber
 
   # Build macOS DMG installer for Apple Silicon (arm64)
@@ -194,10 +194,10 @@ jobs:
       - name: Download macOS arm64 release asset
         run: |
           version="${{ needs.release-please.outputs.version }}"
-          url="https://github.com/robottwo/gsh_prime/releases/download/v${version}/gsh_Darwin_arm64.tar.gz"
-          curl -L -o gsh_Darwin_arm64.tar.gz "$url"
+          url="https://github.com/robottwo/bishop/releases/download/v${version}/bish_Darwin_arm64.tar.gz"
+          curl -L -o bish_Darwin_arm64.tar.gz "$url"
           mkdir -p installer_files
-          tar -xzf gsh_Darwin_arm64.tar.gz -C installer_files
+          tar -xzf bish_Darwin_arm64.tar.gz -C installer_files
 
       - name: Prepare installer files
         run: |
@@ -215,7 +215,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           version="${{ needs.release-please.outputs.version }}"
-          dmg="gsh_${version}_macos_arm64.dmg"
+          dmg="bish_${version}_macos_arm64.dmg"
           gh release upload "v${version}" "$dmg" --clobber
 
   # Build and verify Nix package
@@ -245,4 +245,4 @@ jobs:
 
       - name: Verify binary
         run: |
-          ./result/bin/gsh --version
+          ./result/bin/bish --version

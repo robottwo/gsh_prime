@@ -1,8 +1,8 @@
-# Contributing to gsh_prime
+# Contributing to bishop
 
-Thanks for your interest in contributing. gsh_prime is an actively maintained fork of the original gsh project, with a faster development cadence and a commitment to contributing improvements back upstream.
+Thanks for your interest in contributing. bishop is an actively maintained fork of the original gsh project, with a faster development cadence and a commitment to contributing improvements back upstream.
 
-- Fork repository: https://github.com/robottwo/gsh_prime
+- Fork repository: https://github.com/robottwo/bishop
 - Upstream attribution: see the About this fork section in README.md
 
 Our goals:
@@ -29,18 +29,18 @@ Our goals:
 
 ## Upstream contribution flow
 
-We aim to keep gsh_prime close to upstream and upstream-friendly.
+We aim to keep bishop close to upstream and upstream-friendly.
 
-1. Implement changes in gsh_prime
+1. Implement changes in bishop
    - Keep PRs focused and small.
    - Include tests and docs updates where applicable.
 2. Evaluate upstreamability
    - If the change is generic and beneficial to upstream users, mark the PR description with Upstream-candidate.
 3. Publishing upstream MRs
    - Maintainers will open upstream PRs (or invite authors to do so) with minimal rebasing needed.
-   - Keep implementation neutral: avoid gsh_prime-specific flags or branding in shared logic.
+   - Keep implementation neutral: avoid bishop-specific flags or branding in shared logic.
 4. Syncing with upstream
-   - We regularly rebase or merge upstream main into gsh_prime main to minimize drift.
+   - We regularly rebase or merge upstream main into bishop main to minimize drift.
    - Conflicts are resolved in favor of keeping a clean, maintainable surface that can be upstreamed later.
 
 Tips for upstreamable changes:
@@ -58,10 +58,10 @@ Requirements:
 Clone and build:
 
 ```bash
-git clone https://github.com/robottwo/gsh_prime.git
-cd gsh_prime
+git clone https://github.com/robottwo/bishop.git
+cd bishop
 make build
-# binary at ./bin/gsh
+# binary at ./bin/bish
 ```
 
 ### Git Hooks
@@ -149,7 +149,7 @@ Guidelines:
 
 ## Contact and support
 
-- Issues: https://github.com/robottwo/gsh_prime/issues
+- Issues: https://github.com/robottwo/bishop/issues
 - For upstream matters, include a note in the issue if you believe the change is an upstream candidate.
 
-Thank you for helping improve gsh_prime while keeping it aligned with the broader gsh ecosystem.
+Thank you for helping improve bishop while keeping it aligned with the broader gsh ecosystem.

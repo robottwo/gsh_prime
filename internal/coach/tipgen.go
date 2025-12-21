@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/history"
-	"github.com/atinylittleshell/gsh/internal/utils"
+	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/internal/utils"
 	openai "github.com/sashabaranov/go-openai"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"

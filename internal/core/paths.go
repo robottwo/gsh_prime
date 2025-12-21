@@ -25,11 +25,11 @@ func ensureDefaultPaths() {
 
 		defaultPaths = &Paths{
 			HomeDir:           homeDir,
-			DataDir:           filepath.Join(homeDir, ".local", "share", "gsh"),
-			LogFile:           filepath.Join(homeDir, ".local", "share", "gsh", "gsh.log"),
-			HistoryFile:       filepath.Join(homeDir, ".local", "share", "gsh", "history.db"),
-			AnalyticsFile:     filepath.Join(homeDir, ".local", "share", "gsh", "analytics.db"),
-			LatestVersionFile: filepath.Join(homeDir, ".local", "share", "gsh", "latest_version.txt"),
+			DataDir:           filepath.Join(homeDir, ".local", "share", "bish"),
+			LogFile:           filepath.Join(homeDir, ".local", "share", "bish", "gsh.log"),
+			HistoryFile:       filepath.Join(homeDir, ".local", "share", "bish", "history.db"),
+			AnalyticsFile:     filepath.Join(homeDir, ".local", "share", "bish", "analytics.db"),
+			LatestVersionFile: filepath.Join(homeDir, ".local", "share", "bish", "latest_version.txt"),
 		}
 
 		err = os.MkdirAll(defaultPaths.DataDir, 0755)

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/history"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )

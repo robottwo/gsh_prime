@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/robottwo/bishop/internal/environment"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -114,26 +114,26 @@ func initialModel(runner *interp.Runner) model {
 		{
 			title:       "Provider",
 			description: "LLM provider to use",
-			envVar:      "GSH_SLOW_MODEL_PROVIDER",
+			envVar:      "BISH_SLOW_MODEL_PROVIDER",
 			itemType:    typeList,
 			options:     []string{"ollama", "openai", "openrouter"},
 		},
 		{
 			title:       "API Key",
 			description: "API key for the provider",
-			envVar:      "GSH_SLOW_MODEL_API_KEY",
+			envVar:      "BISH_SLOW_MODEL_API_KEY",
 			itemType:    typeText,
 		},
 		{
 			title:       "Model ID",
 			description: "Model identifier (e.g., qwen2.5:32b)",
-			envVar:      "GSH_SLOW_MODEL_ID",
+			envVar:      "BISH_SLOW_MODEL_ID",
 			itemType:    typeText,
 		},
 		{
 			title:       "Base URL",
 			description: "API endpoint URL (optional override)",
-			envVar:      "GSH_SLOW_MODEL_BASE_URL",
+			envVar:      "BISH_SLOW_MODEL_BASE_URL",
 			itemType:    typeText,
 		},
 	}
@@ -143,26 +143,26 @@ func initialModel(runner *interp.Runner) model {
 		{
 			title:       "Provider",
 			description: "LLM provider to use",
-			envVar:      "GSH_FAST_MODEL_PROVIDER",
+			envVar:      "BISH_FAST_MODEL_PROVIDER",
 			itemType:    typeList,
 			options:     []string{"ollama", "openai", "openrouter"},
 		},
 		{
 			title:       "API Key",
 			description: "API key for the provider",
-			envVar:      "GSH_FAST_MODEL_API_KEY",
+			envVar:      "BISH_FAST_MODEL_API_KEY",
 			itemType:    typeText,
 		},
 		{
 			title:       "Model ID",
 			description: "Model identifier (e.g., qwen2.5)",
-			envVar:      "GSH_FAST_MODEL_ID",
+			envVar:      "BISH_FAST_MODEL_ID",
 			itemType:    typeText,
 		},
 		{
 			title:       "Base URL",
 			description: "API endpoint URL (optional override)",
-			envVar:      "GSH_FAST_MODEL_BASE_URL",
+			envVar:      "BISH_FAST_MODEL_BASE_URL",
 			itemType:    typeText,
 		},
 	}
@@ -171,13 +171,13 @@ func initialModel(runner *interp.Runner) model {
 	assistantHeightSetting := settingItem{
 		title:       "Assistant Height",
 		description: "Height of the bottom assistant box",
-		envVar:      "GSH_ASSISTANT_HEIGHT",
+		envVar:      "BISH_ASSISTANT_HEIGHT",
 		itemType:    typeText,
 	}
 	safetyChecksSetting := settingItem{
 		title:       "Safety Checks",
 		description: "Enable/Disable approved command checks",
-		envVar:      "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX",
+		envVar:      "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX",
 		itemType:    typeToggle,
 	}
 
@@ -394,7 +394,7 @@ func (m *model) handleSettingAction(s *settingItem) tea.Cmd {
 	if s.itemType == typeToggle {
 		curr := getEnv(m.runner, s.envVar)
 		var newVal string
-		if s.envVar == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+		if s.envVar == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
 			if strings.Contains(curr, `".*"`) || strings.Contains(curr, `".+"`) {
 				newVal = "[]"
 			} else {
@@ -485,7 +485,7 @@ func (m model) View() string {
 			if mi, ok := item.(menuItem); ok {
 				if mi.setting != nil {
 					val := getEnv(m.runner, mi.setting.envVar)
-					if mi.setting.envVar == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+					if mi.setting.envVar == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
 						if strings.Contains(val, `".*"`) || strings.Contains(val, `".+"`) {
 							val = "Disabled (All commands allowed)"
 						} else {
@@ -554,9 +554,9 @@ func RunConfigUI(runner *interp.Runner) error {
 }
 
 func getEnv(runner *interp.Runner, key string) string {
-	// Safety Checks uses a session-only flag GSH_SAFETY_CHECKS_DISABLED
-	if key == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
-		if runner.Vars["GSH_SAFETY_CHECKS_DISABLED"].String() == "true" {
+	// Safety Checks uses a session-only flag BISH_SAFETY_CHECKS_DISABLED
+	if key == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+		if runner.Vars["BISH_SAFETY_CHECKS_DISABLED"].String() == "true" {
 			return `[".*"]` // Disabled for this session
 		}
 		return "[]" // Enabled (default)
@@ -570,19 +570,19 @@ func getEnv(runner *interp.Runner, key string) string {
 
 func saveConfig(key, value string, runner *interp.Runner) error {
 	// Handle Safety Checks specially - only affects current session, not persisted
-	// Uses GSH_SAFETY_CHECKS_DISABLED flag which is checked in GetApprovedBashCommandRegex
-	if key == "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
+	// Uses BISH_SAFETY_CHECKS_DISABLED flag which is checked in GetApprovedBashCommandRegex
+	if key == "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX" {
 		// value is either '[".*"]' (disabled) or '[]' (enabled)
 		if strings.Contains(value, `".*"`) || strings.Contains(value, `".+"`) {
 			// Disable safety checks for this session only
-			runner.Vars["GSH_SAFETY_CHECKS_DISABLED"] = expand.Variable{
+			runner.Vars["BISH_SAFETY_CHECKS_DISABLED"] = expand.Variable{
 				Exported: true,
 				Kind:     expand.String,
 				Str:      "true",
 			}
 		} else {
 			// Enable safety checks - remove the session flag
-			delete(runner.Vars, "GSH_SAFETY_CHECKS_DISABLED")
+			delete(runner.Vars, "BISH_SAFETY_CHECKS_DISABLED")
 		}
 		// Don't persist this setting - it only affects the current session
 		return nil
@@ -602,7 +602,7 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 	environment.SyncVariableToEnv(runner, key)
 
 	// Persist to file for future sessions
-	configPath := filepath.Join(homeDir(), ".gsh_config_ui")
+	configPath := filepath.Join(homeDir(), ".bish_config_ui")
 	f, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		return err
@@ -620,9 +620,9 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 		return err
 	}
 
-	// Ensure sourced in .gshrc
-	gshrcPath := filepath.Join(homeDir(), ".gshrc")
-	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.gsh_config_ui ] && source ~/.gsh_config_ui\n"
+	// Ensure sourced in .bishrc
+	gshrcPath := filepath.Join(homeDir(), ".bishrc")
+	sourceSnippet := "\n# Source UI configuration\n[ -f ~/.bish_config_ui ] && source ~/.bish_config_ui\n"
 
 	content, err := os.ReadFile(gshrcPath)
 	if err != nil && !os.IsNotExist(err) {
@@ -630,7 +630,7 @@ func saveConfig(key, value string, runner *interp.Runner) error {
 	}
 
 	// Check if already contains the source snippet
-	if err == nil && strings.Contains(string(content), ".gsh_config_ui") {
+	if err == nil && strings.Contains(string(content), ".bish_config_ui") {
 		return nil // Already configured
 	}
 

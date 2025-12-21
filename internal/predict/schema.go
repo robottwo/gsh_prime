@@ -1,7 +1,7 @@
 package predict
 
 import (
-	"github.com/atinylittleshell/gsh/internal/utils"
+	"github.com/robottwo/bishop/internal/utils"
 )
 
 type PredictedCommand struct {

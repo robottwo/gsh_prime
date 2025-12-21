@@ -1,8 +1,8 @@
-# gsh_prime
+# bishop
 
-[![License](https://img.shields.io/github/license/robottwo/gsh_prime.svg)](https://github.com/robottwo/gsh_prime/blob/main/LICENSE)
-[![Release](https://img.shields.io/github/release/robottwo/gsh_prime.svg)](https://github.com/robottwo/gsh_prime/releases)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/robottwo/gsh_prime/ci.yml?branch=main)](https://github.com/robottwo/gsh_prime/actions)
+[![License](https://img.shields.io/github/license/robottwo/bishop.svg)](https://github.com/robottwo/bishop/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/release/robottwo/bishop.svg)](https://github.com/robottwo/bishop/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/robottwo/bishop/ci.yml?branch=main)](https://github.com/robottwo/bishop/actions)
 
 <p align="center">
 A modern, POSIX-compatible, Generative Shell — fast-paced fork of gsh.
@@ -10,10 +10,10 @@ A modern, POSIX-compatible, Generative Shell — fast-paced fork of gsh.
 
 ## About this fork
 
-gsh_prime is an actively maintained fork of the original project, gsh.
+bishop is an actively maintained fork of the original project, gsh.
 
 - Upstream: https://github.com/atinylittleshell/gsh
-- Fork: https://github.com/robottwo/gsh_prime
+- Fork: https://github.com/robottwo/bishop
 
 Focus areas:
 - Faster development cadence and iteration
@@ -30,10 +30,10 @@ For installation, building from source, and first run, see:
 Example build from source:
 
 ```bash
-git clone https://github.com/robottwo/gsh_prime.git
-cd gsh_prime
+git clone https://github.com/robottwo/bishop.git
+cd bishop
 make build
-./bin/gsh
+./bin/bish
 ```
 
 ## Key features
@@ -52,7 +52,7 @@ make build
 
 ## Generative Command Suggestion
 
-gsh automatically suggests the next command you are likely to run based on your history and context.
+Bishop automatically suggests the next command you are likely to run based on your history and context.
 
 ![Generative Suggestion](assets/prediction.gif)
 
@@ -65,7 +65,7 @@ Key points:
 
 ## Command Explanation
 
-gsh can explain the command you are about to run so you can validate effects and options quickly.
+Bishop can explain the command you are about to run so you can validate effects and options quickly.
 
 ![Command Explanation](assets/explanation.gif)
 

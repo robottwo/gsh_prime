@@ -21,7 +21,7 @@
         else "v${rawVersion}";
     in {
       packages.default = pkgs.buildGoModule {
-        pname = "gsh";
+        pname = "bish";
         version = version;
         src = ./.;
         vendorHash = "sha256-Lcl6fyZf3ku8B8q4J4ljUyqhLhJ+q61DLj/Bs/RrQZo=";
@@ -32,7 +32,7 @@
           "-X main.BUILD_VERSION=${version}"
         ];
 
-        subPackages = ["cmd/gsh"];
+        subPackages = ["cmd/bish"];
 
         checkFlags = let
           # Skip tests that require network access or violate
@@ -47,10 +47,10 @@
 
         meta = with pkgs.lib; {
           description = "A modern, POSIX-compatible, generative shell";
-          homepage = "https://github.com/robottwo/gsh_prime";
+          homepage = "https://github.com/robottwo/bishop";
           license = licenses.gpl3Plus;
           maintainers = [];
-          mainProgram = "gsh";
+          mainProgram = "bish";
         };
       };
 

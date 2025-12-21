@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/robottwo/bishop/internal/history"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"

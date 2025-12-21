@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/styles"
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/pkg/gline"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )

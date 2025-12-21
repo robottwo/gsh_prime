@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script to create a macOS DMG installer for gsh
+# Script to create a macOS DMG installer for bish
 # Usage: ./create-dmg.sh <version> <arch> <source_dir> <output_dir>
 #   version: The version number (e.g., 0.27.0)
 #   arch: The architecture (x86_64 or arm64)
@@ -18,7 +18,7 @@ if [ -z "$VERSION" ] || [ -z "$ARCH" ] || [ -z "$SOURCE_DIR" ] || [ -z "$OUTPUT_
     exit 1
 fi
 
-APP_NAME="gsh"
+APP_NAME="bish"
 DMG_NAME="${APP_NAME}_${VERSION}_macos_${ARCH}.dmg"
 VOLUME_NAME="${APP_NAME} ${VERSION}"
 DMG_TEMP="${OUTPUT_DIR}/${APP_NAME}_temp.dmg"
@@ -34,8 +34,8 @@ trap 'rm -rf "${DMG_CONTENTS}"' EXIT
 mkdir -p "${DMG_CONTENTS}/${APP_NAME}"
 
 # Copy the binary
-cp "${SOURCE_DIR}/gsh" "${DMG_CONTENTS}/${APP_NAME}/"
-chmod +x "${DMG_CONTENTS}/${APP_NAME}/gsh"
+cp "${SOURCE_DIR}/bish" "${DMG_CONTENTS}/${APP_NAME}/"
+chmod +x "${DMG_CONTENTS}/${APP_NAME}/bish"
 
 # Copy documentation files if they exist
 [ -f "${SOURCE_DIR}/LICENSE" ] && cp "${SOURCE_DIR}/LICENSE" "${DMG_CONTENTS}/${APP_NAME}/"
@@ -43,21 +43,21 @@ chmod +x "${DMG_CONTENTS}/${APP_NAME}/gsh"
 
 # Create an installation instructions file
 cat > "${DMG_CONTENTS}/${APP_NAME}/INSTALL.txt" << 'EOF'
-gsh Installation Instructions
+bish Installation Instructions
 ==============================
 
-To install gsh, copy the 'gsh' binary to a directory in your PATH.
+To install bish, copy the 'bish' binary to a directory in your PATH.
 
 Recommended installation:
 
-    sudo cp gsh /usr/local/bin/
-    sudo chmod +x /usr/local/bin/gsh
+    sudo cp bish /usr/local/bin/
+    sudo chmod +x /usr/local/bin/bish
 
 Or for a user-local installation:
 
     mkdir -p ~/.local/bin
-    cp gsh ~/.local/bin/
-    chmod +x ~/.local/bin/gsh
+    cp bish ~/.local/bin/
+    chmod +x ~/.local/bin/bish
 
 Then add ~/.local/bin to your PATH if not already present:
 
@@ -65,9 +65,9 @@ Then add ~/.local/bin to your PATH if not already present:
 
 Alternatively, install via Homebrew:
 
-    brew install robottwo/gsh/gsh
+    brew install robottwo/bish/bish
 
-For more information, visit: https://github.com/robottwo/gsh_prime
+For more information, visit: https://github.com/robottwo/bishop
 EOF
 
 # Create a symlink to /usr/local/bin for easy drag-and-drop installation idea

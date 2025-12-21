@@ -5,7 +5,7 @@ before:
     - go mod tidy
 
 builds:
-  - main: ./cmd/gsh
+  - main: ./cmd/bish
     env:
       - CGO_ENABLED=0
     goos:
@@ -39,9 +39,9 @@ archives:
 # NFPM for .deb and .rpm packages
 nfpms:
   - id: packages
-    package_name: gsh
+    package_name: bish
     vendor: robottwo
-    homepage: https://github.com/robottwo/gsh_prime
+    homepage: https://github.com/robottwo/bishop
     maintainer: robottwo <robottwo@users.noreply.github.com>
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
@@ -59,11 +59,11 @@ nfpms:
         - statically-linked-binary
     contents:
       - src: ./LICENSE
-        dst: /usr/share/licenses/gsh/LICENSE
+        dst: /usr/share/licenses/bish/LICENSE
         file_info:
           mode: 0644
       - src: ./README.md
-        dst: /usr/share/doc/gsh/README.md
+        dst: /usr/share/doc/bish/README.md
         file_info:
           mode: 0644
 
@@ -76,8 +76,8 @@ changelog:
 
 # Homebrew Casks (replaces deprecated brews section as of GoReleaser v2.10)
 homebrew_casks:
-  - name: gsh
-    homepage: https://github.com/robottwo/gsh_prime
+  - name: bish
+    homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     commit_author:
@@ -85,13 +85,13 @@ homebrew_casks:
       email: robottwo@users.noreply.github.com
     repository:
       owner: robottwo
-      name: homebrew-gsh
+      name: homebrew-bishop
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
 
 # Scoop (Windows)
 scoops:
-  - name: gsh
-    homepage: https://github.com/robottwo/gsh_prime
+  - name: bish
+    homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     repository:
@@ -101,34 +101,34 @@ scoops:
 
 # AUR binary package
 aurs:
-  - name: gsh-bin
-    homepage: https://github.com/robottwo/gsh_prime
+  - name: bish-bin
+    homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     maintainers:
       - "robottwo <robottwo@users.noreply.github.com>"
     private_key: "{{ .Env.AUR_PRIVATE_KEY }}"
-    git_url: "ssh://aur@aur.archlinux.org/gsh-bin.git"
+    git_url: "ssh://aur@aur.archlinux.org/bish-bin.git"
     commit_author:
       name: robottwo
       email: robottwo@users.noreply.github.com
     package: |-
       # bin
-      install -Dm755 "./gsh" "${pkgdir}/usr/bin/gsh"
+      install -Dm755 "./bish" "${pkgdir}/usr/bin/bish"
 
       # license
-      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/gsh/LICENSE"
+      install -Dm644 "./LICENSE" "${pkgdir}/usr/share/licenses/bish/LICENSE"
 
 # AUR source package
 aur_sources:
-  - name: gsh
-    homepage: https://github.com/robottwo/gsh_prime
+  - name: bish
+    homepage: https://github.com/robottwo/bishop
     description: A modern, POSIX-compatible, generative shell
     license: GPL-3.0-or-later
     maintainers:
       - "robottwo <robottwo@users.noreply.github.com>"
     private_key: "{{ .Env.AUR_PRIVATE_KEY }}"
-    git_url: "ssh://aur@aur.archlinux.org/gsh.git"
+    git_url: "ssh://aur@aur.archlinux.org/bish.git"
     commit_author:
       name: robottwo
       email: robottwo@users.noreply.github.com

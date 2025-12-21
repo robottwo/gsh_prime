@@ -10,15 +10,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/analytics"
-	"github.com/atinylittleshell/gsh/internal/bash"
-	"github.com/atinylittleshell/gsh/internal/coach"
-	"github.com/atinylittleshell/gsh/internal/completion"
-	"github.com/atinylittleshell/gsh/internal/config"
-	"github.com/atinylittleshell/gsh/internal/core"
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/evaluate"
-	"github.com/atinylittleshell/gsh/internal/history"
+	"github.com/robottwo/bishop/internal/analytics"
+	"github.com/robottwo/bishop/internal/bash"
+	"github.com/robottwo/bishop/internal/coach"
+	"github.com/robottwo/bishop/internal/completion"
+	"github.com/robottwo/bishop/internal/config"
+	"github.com/robottwo/bishop/internal/core"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/evaluate"
+	"github.com/robottwo/bishop/internal/history"
 	"go.uber.org/zap"
 	"golang.org/x/term"
 	"mvdan.cc/sh/v3/expand"
@@ -27,12 +27,12 @@ import (
 
 var BUILD_VERSION = "dev"
 
-//go:embed .gshrc.default
+//go:embed .bishrc.default
 var DEFAULT_VARS []byte
 
 var command = flag.String("c", "", "run a command")
 var loginShell = flag.Bool("l", false, "run as a login shell")
-var rcFile = flag.String("rcfile", "", "use a custom rc file instead of ~/.gshrc")
+var rcFile = flag.String("rcfile", "", "use a custom rc file instead of ~/.bishrc")
 var strictConfig = flag.Bool("strict-config", false, "fail fast if configuration files contain errors (like bash 'set -e')")
 
 var helpFlag = flag.Bool("h", false, "display help information")
@@ -47,7 +47,7 @@ func main() {
 	}
 
 	if *helpFlag {
-		fmt.Println("Usage of gsh:")
+		fmt.Println("Usage of bish:")
 		flag.PrintDefaults()
 		return
 	}
@@ -127,7 +127,7 @@ func run(
 
 	// gsh -c "echo hello"
 	if *command != "" {
-		return bash.RunBashScriptFromReader(ctx, runner, strings.NewReader(*command), "gsh")
+		return bash.RunBashScriptFromReader(ctx, runner, strings.NewReader(*command), "bish")
 	}
 
 	// gsh
@@ -136,7 +136,7 @@ func run(
 			return core.RunInteractiveShell(ctx, runner, historyManager, analyticsManager, completionManager, coachManager, logger, stderrCapturer)
 		}
 
-		return bash.RunBashScriptFromReader(ctx, runner, os.Stdin, "gsh")
+		return bash.RunBashScriptFromReader(ctx, runner, os.Stdin, "bish")
 	}
 
 	// gsh script.sh
@@ -205,9 +205,9 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 	dynamicEnv := environment.NewDynamicEnviron()
 	// Set initial system environment variables
 	dynamicEnv.UpdateSystemEnv()
-	// Add GSH-specific environment variables
-	dynamicEnv.UpdateGSHVar("SHELL", shellPath)
-	dynamicEnv.UpdateGSHVar("GSH_BUILD_VERSION", BUILD_VERSION)
+	// Add BISH-specific environment variables
+	dynamicEnv.UpdateBishVar("SHELL", shellPath)
+	dynamicEnv.UpdateBishVar("BISH_BUILD_VERSION", BUILD_VERSION)
 	env := expand.Environ(dynamicEnv)
 
 	var runner *interp.Runner
@@ -235,7 +235,7 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		context.Background(),
 		runner,
 		bytes.NewReader(DEFAULT_VARS),
-		"gsh",
+		"bish",
 	); err != nil {
 		panic(err)
 	}
@@ -247,17 +247,17 @@ func initializeRunner(analyticsManager *analytics.AnalyticsManager, historyManag
 		configFiles = []string{*rcFile}
 	} else {
 		configFiles = []string{
-			filepath.Join(core.HomeDir(), ".gshrc"),
-			filepath.Join(core.HomeDir(), ".gshenv"),
+			filepath.Join(core.HomeDir(), ".bishrc"),
+			filepath.Join(core.HomeDir(), ".bishenv"),
 		}
 
 		// Check if this is a login shell
 		if *loginShell || strings.HasPrefix(os.Args[0], "-") {
-			// Prepend .gsh_profile to the list of config files
+			// Prepend .bish_profile to the list of config files
 			configFiles = append(
 				[]string{
 					"/etc/profile",
-					filepath.Join(core.HomeDir(), ".gsh_profile"),
+					filepath.Join(core.HomeDir(), ".bish_profile"),
 				},
 				configFiles...,
 			)

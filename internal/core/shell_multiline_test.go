@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/pkg/gline"
 )
 
 // TestShellMultilineCommands tests that the shell properly handles multiline commands

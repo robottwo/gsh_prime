@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/analytics"
+	"github.com/robottwo/bishop/internal/analytics"
 	"mvdan.cc/sh/v3/interp"
 )
 

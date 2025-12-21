@@ -1,11 +1,11 @@
 ; Inno Setup Script for gsh
 ; This script creates a Windows installer (.exe) for gsh
 
-#define MyAppName "gsh"
-#define MyAppVersion GetEnv('GSH_VERSION')
+#define MyAppName "bish"
+#define MyAppVersion GetEnv('BISH_VERSION')
 #define MyAppPublisher "robottwo"
-#define MyAppURL "https://github.com/robottwo/gsh_prime"
-#define MyAppExeName "gsh.exe"
+#define MyAppURL "https://github.com/robottwo/bishop"
+#define MyAppExeName "bish.exe"
 
 [Setup]
 ; Unique identifier for this application
@@ -25,7 +25,7 @@ DisableProgramGroupPage=yes
 LicenseFile=LICENSE
 ; Output settings
 OutputDir=.
-OutputBaseFilename=gsh_{#MyAppVersion}_windows_x86_64_setup
+OutputBaseFilename=bish_{#MyAppVersion}_windows_x86_64_setup
 ; Compression
 Compression=lzma2
 SolidCompression=yes
@@ -42,7 +42,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-Source: "gsh.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "bish.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "README.md"; DestDir: "{app}"; Flags: ignoreversion; Check: SourceFileExists('README.md')
 

@@ -130,7 +130,7 @@ func TestPruneMessages(t *testing.T) {
 			)
 
 			runner.Vars = map[string]expand.Variable{
-				"GSH_AGENT_CONTEXT_WINDOW_TOKENS": {Kind: expand.String, Str: tt.contextWindow},
+				"BISH_AGENT_CONTEXT_WINDOW_TOKENS": {Kind: expand.String, Str: tt.contextWindow},
 			}
 
 			agent := &Agent{

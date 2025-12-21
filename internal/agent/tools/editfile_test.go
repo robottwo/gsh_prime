@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/filesystem"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/filesystem"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/expand"

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/atinylittleshell/gsh/pkg/reverse"
+	"github.com/robottwo/bishop/pkg/reverse"
 	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )

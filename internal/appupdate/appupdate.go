@@ -3,15 +3,15 @@ package appupdate
 import (
 	"bytes"
 	"context"
-	"github.com/atinylittleshell/gsh/internal/filesystem"
+	"github.com/robottwo/bishop/internal/filesystem"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/atinylittleshell/gsh/internal/core"
-	"github.com/atinylittleshell/gsh/internal/styles"
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/internal/core"
+	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/pkg/gline"
 	"github.com/creativeprojects/go-selfupdate"
 	"go.uber.org/zap"
 )
@@ -23,7 +23,7 @@ func HandleSelfUpdate(
 	prompter core.UserPrompter,
 	updater Updater,
 ) chan string {
-	const repoSlug = "robottwo/gsh_prime"
+	const repoSlug = "robottwo/bishop"
 
 	resultChannel := make(chan string)
 
@@ -79,8 +79,8 @@ func updateToLatestVersion(repoSlug string, currentSemVer *semver.Version, logge
 		return
 	}
 
-	// Check GSH_DEFAULT_TO_YES environment variable
-	defaultToYes := strings.ToLower(os.Getenv("GSH_DEFAULT_TO_YES"))
+	// Check BISH_DEFAULT_TO_YES environment variable
+	defaultToYes := strings.ToLower(os.Getenv("BISH_DEFAULT_TO_YES"))
 	isDefaultYes := defaultToYes == "1" || defaultToYes == "true"
 
 	promptText := "New version of gsh available. Update now? (y/N) "

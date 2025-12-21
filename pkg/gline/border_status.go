@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/git"
-	"github.com/atinylittleshell/gsh/internal/system"
+	"github.com/robottwo/bishop/internal/git"
+	"github.com/robottwo/bishop/internal/system"
 	"github.com/charmbracelet/lipgloss"
 )
 

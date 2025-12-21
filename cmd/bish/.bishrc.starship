@@ -1,0 +1,9 @@
+function BISH_UPDATE_PROMPT() {
+  BISH_PROMPT="$(starship prompt --status=$BISH_LAST_COMMAND_EXIT_CODE --cmd-duration=$BISH_LAST_COMMAND_DURATION_MS)"
+}
+
+STARSHIP_SHELL="bish"
+STARSHIP_SESSION_KEY="$(starship session)"
+STARSHIP_START_TIME="$(starship time)"
+
+BISH_PROMPT="$(starship prompt --status=$BISH_LAST_COMMAND_EXIT_CODE --cmd-duration=$BISH_LAST_COMMAND_DURATION_MS)"

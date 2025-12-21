@@ -3,7 +3,7 @@ package completion
 import (
 	"context"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"mvdan.cc/sh/v3/interp"
 )
 

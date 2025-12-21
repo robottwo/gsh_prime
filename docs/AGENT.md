@@ -25,7 +25,7 @@ gsh> @/gitpush
 gsh> @/gitreview
 ```
 
-You can customize your own macros by modifying the `GSH_AGENT_MACROS` configuration in your `.gshrc` file.
+You can customize your own macros by modifying the `BISH_AGENT_MACROS` configuration in your `.bishrc` file.
 The value should be a JSON object mapping macro names to their corresponding chat messages.
 See [Configuration](../README.md#configuration) for more details.
 
@@ -116,7 +116,7 @@ The authorized commands are stored in `~/.config/gsh/authorized_commands` as reg
 - **Edit patterns**: Manually edit the file to modify or remove patterns
 - **Clear all patterns**: `rm ~/.config/gsh/authorized_commands`
 
-This system works alongside the existing `GSH_AGENT_APPROVED_BASH_COMMAND_REGEX` configuration, providing both pre-configured and dynamically-generated command approval.
+This system works alongside the existing `BISH_AGENT_APPROVED_BASH_COMMAND_REGEX` configuration, providing both pre-configured and dynamically-generated command approval.
 
 ## Compound Command Security
 
@@ -132,22 +132,22 @@ gsh provides robust security for compound commands (commands using `;`, `&&`, `|
 
 ```bash
 # ✅ SECURE: All commands approved
-gsh: Do I have your permission to run the following command?
+bish: Do I have your permission to run the following command?
 Command: ls && pwd && echo done
 # If ls, pwd, and echo are all approved → auto-approved
 
 # ❌ BLOCKED: Contains unapproved command
-gsh: Do I have your permission to run the following command?
+bish: Do I have your permission to run the following command?
 Command: ls; rm -rf /
 # Even though ls is approved, rm is not → requires confirmation
 
 # ❌ BLOCKED: Injection in subshell
-gsh: Do I have your permission to run the following command?
+bish: Do I have your permission to run the following command?
 Command: (ls && rm -rf /)
 # rm command in subshell is not approved → requires confirmation
 
 # ❌ BLOCKED: Injection in pipe
-gsh: Do I have your permission to run the following command?
+bish: Do I have your permission to run the following command?
 Command: ls | rm -rf /
 # rm command in pipe is not approved → requires confirmation
 ```
@@ -188,7 +188,7 @@ gsh> ls nonexistent_file
 ls: nonexistent_file: No such file or directory
 
 gsh> @?
-gsh: The command failed because...
+bish: The command failed because...
 
 Command: ls "nonexistent_file"
 Run this fix? [y/N]
@@ -205,6 +205,6 @@ If a fix is found, you can run it immediately with a single keypress (`y` to con
 
 By default, confirmation prompts (including Magic Fix, command permissions, and app updates) default to "no" when Enter is pressed, displaying `[y/N]`.
 
-You can change this behavior by setting `GSH_DEFAULT_TO_YES=1` in your `.gshrc` file. When enabled:
+You can change this behavior by setting `BISH_DEFAULT_TO_YES=1` in your `.bishrc` file. When enabled:
 - Prompts will display `[Y/n]` instead of `[y/N]`
 - Pressing Enter will confirm instead of cancel

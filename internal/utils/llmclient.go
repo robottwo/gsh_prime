@@ -23,7 +23,7 @@ const (
 )
 
 func GetLLMClient(runner *interp.Runner, modelType LLMModelType) (*openai.Client, LLMModelConfig) {
-	varPrefix := "GSH_" + string(modelType) + "_MODEL_"
+	varPrefix := "BISH_" + string(modelType) + "_MODEL_"
 
 	// Read provider setting (ollama, openai, openrouter)
 	provider := strings.ToLower(runner.Vars[varPrefix+"PROVIDER"].String())
@@ -93,8 +93,8 @@ func GetLLMClient(runner *interp.Runner, modelType LLMModelType) (*openai.Client
 		if headers == nil {
 			headers = make(map[string]string)
 		}
-		headers["HTTP-Referer"] = "https://github.com/atinylittleshell/gsh"
-		headers["X-Title"] = "gsh - The Generative Shell"
+		headers["HTTP-Referer"] = "https://github.com/robottwo/bishop"
+		headers["X-Title"] = "bishop - The Generative Shell"
 	}
 
 	llmClientConfig := openai.DefaultConfig(apiKey)

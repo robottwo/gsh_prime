@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/completion"
-	"github.com/atinylittleshell/gsh/internal/history"
-	"github.com/atinylittleshell/gsh/internal/styles"
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/internal/completion"
+	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/pkg/gline"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 )
@@ -180,7 +180,7 @@ func (si *SubagentIntegration) HandleAgentControl(control string) bool {
 	switch control {
 	case "subagents":
 		// No argument - list all subagents
-		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: "+si.manager.GetSubagentsSummary()) + gline.RESET_CURSOR_COLUMN)
+		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+si.manager.GetSubagentsSummary()) + gline.RESET_CURSOR_COLUMN)
 		return true
 
 	case "reload-subagents":
@@ -189,7 +189,7 @@ func (si *SubagentIntegration) HandleAgentControl(control string) bool {
 		} else {
 			// Clear executor cache to pick up changes
 			si.executors = make(map[string]*SubagentExecutor)
-			fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Subagents reloaded successfully.\n") + gline.RESET_CURSOR_COLUMN)
+			fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Subagents reloaded successfully.\n") + gline.RESET_CURSOR_COLUMN)
 		}
 		return true
 
@@ -236,16 +236,16 @@ func (si *SubagentIntegration) showSubagentInfo(subagentID string) {
 	}
 	info.WriteString(fmt.Sprintf("Configuration File: %s\n", subagent.FilePath))
 
-	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: "+info.String()) + gline.RESET_CURSOR_COLUMN)
+	fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+info.String()) + gline.RESET_CURSOR_COLUMN)
 }
 
 // resetSubagent resets the chat session for a specific subagent
 func (si *SubagentIntegration) resetSubagent(subagentID string) {
 	if executor, exists := si.executors[subagentID]; exists {
 		executor.ResetChat()
-		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("gsh: Reset chat session for subagent '%s'.\n", subagentID)) + gline.RESET_CURSOR_COLUMN)
+		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("bish: Reset chat session for subagent '%s'.\n", subagentID)) + gline.RESET_CURSOR_COLUMN)
 	} else {
-		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("gsh: No active session for subagent '%s'.\n", subagentID)) + gline.RESET_CURSOR_COLUMN)
+		fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(fmt.Sprintf("bish: No active session for subagent '%s'.\n", subagentID)) + gline.RESET_CURSOR_COLUMN)
 	}
 }
 

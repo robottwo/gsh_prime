@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"mvdan.cc/sh/v3/expand"
@@ -142,12 +142,12 @@ func TestGetCompletions(t *testing.T) {
 	}()
 
 	// Set up environment for macro testing
-	t.Setenv("GSH_AGENT_MACROS", `{"macro1": {}, "macro2": {}, "macro3": {}}`)
+	t.Setenv("BISH_AGENT_MACROS", `{"macro1": {}, "macro2": {}, "macro3": {}}`)
 
 	// Create a proper runner with the macros variable
 	runner, _ := interp.New(interp.StdIO(nil, nil, nil))
 	runner.Vars = map[string]expand.Variable{
-		"GSH_AGENT_MACROS": {Kind: expand.String, Str: `{"macro1": {}, "macro2": {}, "macro3": {}}`},
+		"BISH_AGENT_MACROS": {Kind: expand.String, Str: `{"macro1": {}, "macro2": {}, "macro3": {}}`},
 	}
 
 	manager := &mockCompletionManager{}
@@ -575,7 +575,7 @@ func TestGetHelpInfo(t *testing.T) {
 
 func TestGetHelpInfoWithMacros(t *testing.T) {
 	// Set up test macros using environment variable since runner is nil in provider
-	t.Setenv("GSH_AGENT_MACROS", `{"test": "This is a test macro", "help": "Show help information"}`)
+	t.Setenv("BISH_AGENT_MACROS", `{"test": "This is a test macro", "help": "Show help information"}`)
 
 	// Use nil runner to force fallback to environment variable
 	manager := NewCompletionManager()

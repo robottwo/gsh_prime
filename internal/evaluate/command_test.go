@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/analytics"
+	"github.com/robottwo/bishop/internal/analytics"
 	"github.com/stretchr/testify/assert"
 	"mvdan.cc/sh/v3/interp"
 )

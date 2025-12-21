@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/internal/environment"
+	"github.com/robottwo/bishop/internal/environment"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/expand"
@@ -132,12 +132,12 @@ func TestCompoundCommandSecurity(t *testing.T) {
 				}
 				patternsJSON += `"]`
 
-				runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+				runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 					Kind: expand.String,
 					Str:  patternsJSON,
 				}
 			} else {
-				delete(runner.Vars, "GSH_AGENT_APPROVED_BASH_COMMAND_REGEX")
+				delete(runner.Vars, "BISH_AGENT_APPROVED_BASH_COMMAND_REGEX")
 			}
 
 			// Test the validation
@@ -226,7 +226,7 @@ func TestEndToEndSecurityScenario(t *testing.T) {
 	}()
 
 	// Set up initial approved patterns
-	runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+	runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 		Kind: expand.String,
 		Str:  `["^ls.*", "^echo.*"]`,
 	}

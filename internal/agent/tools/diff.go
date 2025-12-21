@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/atinylittleshell/gsh/internal/utils"
+	"github.com/robottwo/bishop/internal/utils"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"
 	"mvdan.cc/sh/v3/syntax"

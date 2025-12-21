@@ -71,7 +71,7 @@ func TestVersionFlag(t *testing.T) {
 			versionFlag = flag.Bool("ver", false, "display build version")
 
 			// Parse test flags
-			os.Args = append([]string{"gsh"}, tt.args...)
+			os.Args = append([]string{"bish"}, tt.args...)
 			flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 			versionFlag = flag.Bool("ver", false, "display build version")
 			flag.Parse()
@@ -96,7 +96,7 @@ func TestHelpFlag(t *testing.T) {
 	helpFlag = flag.Bool("h", false, "display help information")
 	
 	// Set test args
-	os.Args = []string{"gsh", "-h"}
+	os.Args = []string{"bish", "-h"}
 	
 	// Parse flags
 	flag.Parse()
@@ -116,7 +116,7 @@ func TestCommandFlag(t *testing.T) {
 	
 	// Set test args
 	testCommand := "echo hello"
-	os.Args = []string{"gsh", "-c", testCommand}
+	os.Args = []string{"bish", "-c", testCommand}
 	
 	// Parse flags
 	flag.Parse()
@@ -137,12 +137,12 @@ func TestLoginShellFlag(t *testing.T) {
 	}{
 		{
 			name:     "Login shell flag set",
-			args:     []string{"gsh", "-l"},
+			args:     []string{"bish", "-l"},
 			expected: true,
 		},
 		{
 			name:     "Login shell flag not set",
-			args:     []string{"gsh"},
+			args:     []string{"bish"},
 			expected: false,
 		},
 	}
@@ -283,18 +283,18 @@ func TestBuildWithVersionInjection(t *testing.T) {
 }
 
 func TestEnvironmentVariableExport(t *testing.T) {
-	t.Run("GSH_BUILD_VERSION should be exported to shell environment", func(t *testing.T) {
-		// The main.go sets GSH_BUILD_VERSION in the environment
+	t.Run("BISH_BUILD_VERSION should be exported to shell environment", func(t *testing.T) {
+		// The main.go sets BISH_BUILD_VERSION in the environment
 		// This test verifies the environment variable name is correct
-		expectedEnvVar := "GSH_BUILD_VERSION"
+		expectedEnvVar := "BISH_BUILD_VERSION"
 		
 		// Check that the environment variable name follows conventions
-		assert.Equal(t, "GSH_BUILD_VERSION", expectedEnvVar,
-			"Environment variable should be named GSH_BUILD_VERSION")
+		assert.Equal(t, "BISH_BUILD_VERSION", expectedEnvVar,
+			"Environment variable should be named BISH_BUILD_VERSION")
 		
-		// Verify it starts with GSH_ prefix
-		assert.True(t, strings.HasPrefix(expectedEnvVar, "GSH_"),
-			"Environment variable should have GSH_ prefix")
+		// Verify it starts with BISH_ prefix
+		assert.True(t, strings.HasPrefix(expectedEnvVar, "BISH_"),
+			"Environment variable should have BISH_ prefix")
 	})
 }
 

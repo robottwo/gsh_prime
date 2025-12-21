@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/atinylittleshell/gsh/pkg/gline"
+	"github.com/robottwo/bishop/pkg/gline"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"mvdan.cc/sh/v3/interp"

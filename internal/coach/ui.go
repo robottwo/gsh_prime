@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/styles"
+	"github.com/robottwo/bishop/internal/styles"
 )
 
 // RenderDashboard renders the main coach dashboard

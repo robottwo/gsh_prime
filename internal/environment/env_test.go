@@ -284,7 +284,7 @@ func TestGetApprovedBashCommandRegexWithEnvironmentPatterns(t *testing.T) {
 	}
 
 	// Set environment variable with JSON array
-	runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+	runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 		Kind: expand.String,
 		Str:  "[\"^fakecmd1.*\", \"^fakecmd2.*\"]",
 	}
@@ -366,7 +366,7 @@ func TestGetApprovedBashCommandRegexInvalidJSON(t *testing.T) {
 	}
 
 	// Set environment variable with invalid JSON
-	runner.Vars["GSH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
+	runner.Vars["BISH_AGENT_APPROVED_BASH_COMMAND_REGEX"] = expand.Variable{
 		Kind: expand.String,
 		Str:  "invalid json",
 	}
@@ -696,17 +696,17 @@ func TestEnvironmentHelperFunctionsWithCustomValues(t *testing.T) {
 	}
 
 	// Set custom values
-	runner.Vars["GSH_PAST_COMMANDS_CONTEXT_LIMIT"] = expand.Variable{Kind: expand.String, Str: "50"}
-	runner.Vars["GSH_LOG_LEVEL"] = expand.Variable{Kind: expand.String, Str: "debug"}
-	runner.Vars["GSH_CLEAN_LOG_FILE"] = expand.Variable{Kind: expand.String, Str: "true"}
-	runner.Vars["GSH_PROMPT"] = expand.Variable{Kind: expand.String, Str: "custom> "}
-	runner.Vars["GSH_BUILD_VERSION"] = expand.Variable{Kind: expand.String, Str: "dev"}
-	runner.Vars["GSH_AGENT_CONTEXT_WINDOW_TOKENS"] = expand.Variable{Kind: expand.String, Str: "16384"}
-	runner.Vars["GSH_ASSISTANT_HEIGHT"] = expand.Variable{Kind: expand.String, Str: "5"}
-	runner.Vars["GSH_AGENT_MACROS"] = expand.Variable{Kind: expand.String, Str: "{\"test\": \"echo test\"}"}
-	runner.Vars["GSH_CONTEXT_TYPES_FOR_AGENT"] = expand.Variable{Kind: expand.String, Str: "history,files"}
-	runner.Vars["GSH_CONTEXT_NUM_HISTORY_CONCISE"] = expand.Variable{Kind: expand.String, Str: "20"}
-	runner.Vars["GSH_CONTEXT_NUM_HISTORY_VERBOSE"] = expand.Variable{Kind: expand.String, Str: "10"}
+	runner.Vars["BISH_PAST_COMMANDS_CONTEXT_LIMIT"] = expand.Variable{Kind: expand.String, Str: "50"}
+	runner.Vars["BISH_LOG_LEVEL"] = expand.Variable{Kind: expand.String, Str: "debug"}
+	runner.Vars["BISH_CLEAN_LOG_FILE"] = expand.Variable{Kind: expand.String, Str: "true"}
+	runner.Vars["BISH_PROMPT"] = expand.Variable{Kind: expand.String, Str: "custom> "}
+	runner.Vars["BISH_BUILD_VERSION"] = expand.Variable{Kind: expand.String, Str: "dev"}
+	runner.Vars["BISH_AGENT_CONTEXT_WINDOW_TOKENS"] = expand.Variable{Kind: expand.String, Str: "16384"}
+	runner.Vars["BISH_ASSISTANT_HEIGHT"] = expand.Variable{Kind: expand.String, Str: "5"}
+	runner.Vars["BISH_AGENT_MACROS"] = expand.Variable{Kind: expand.String, Str: "{\"test\": \"echo test\"}"}
+	runner.Vars["BISH_CONTEXT_TYPES_FOR_AGENT"] = expand.Variable{Kind: expand.String, Str: "history,files"}
+	runner.Vars["BISH_CONTEXT_NUM_HISTORY_CONCISE"] = expand.Variable{Kind: expand.String, Str: "20"}
+	runner.Vars["BISH_CONTEXT_NUM_HISTORY_VERBOSE"] = expand.Variable{Kind: expand.String, Str: "10"}
 
 	// Test custom values
 	historyLimit := GetHistoryContextLimit(runner, logger)
@@ -778,34 +778,34 @@ func TestSyncVariablesToEnvExportsGSHVariables(t *testing.T) {
 	}
 
 	expected := map[string]string{
-		"GSH_PROMPT":                                      "sync> ",
-		"GSH_APROMPT":                                     "agent> ",
-		"GSH_BUILD_VERSION":                               "dev",
-		"GSH_LOG_LEVEL":                                   "debug",
-		"GSH_CLEAN_LOG_FILE":                              "true",
-		"GSH_MINIMUM_HEIGHT":                              "8",
-		"GSH_ASSISTANT_HEIGHT":                            "4",
-		"GSH_AGENT_NAME":                                  "helper",
-		"GSH_FAST_MODEL_API_KEY":                          "fast-key",
-		"GSH_FAST_MODEL_BASE_URL":                         "https://fast.example.com",
-		"GSH_FAST_MODEL_ID":                               "fast-model",
-		"GSH_SLOW_MODEL_API_KEY":                          "slow-key",
-		"GSH_SLOW_MODEL_BASE_URL":                         "https://slow.example.com",
-		"GSH_SLOW_MODEL_ID":                               "slow-model",
-		"GSH_AGENT_CONTEXT_WINDOW_TOKENS":                 "2048",
-		"GSH_PAST_COMMANDS_CONTEXT_LIMIT":                 "25",
-		"GSH_CONTEXT_TYPES_FOR_AGENT":                     "history,files",
-		"GSH_CONTEXT_TYPES_FOR_PREDICTION_WITH_PREFIX":    "history",
-		"GSH_CONTEXT_TYPES_FOR_PREDICTION_WITHOUT_PREFIX": "files",
-		"GSH_CONTEXT_TYPES_FOR_EXPLANATION":               "commands",
-		"GSH_CONTEXT_NUM_HISTORY_CONCISE":                 "5",
-		"GSH_CONTEXT_NUM_HISTORY_VERBOSE":                 "7",
-		"GSH_AGENT_APPROVED_BASH_COMMAND_REGEX":           "[\"^ls.*\"]",
-		"GSH_AGENT_MACROS":                                "{\"m\":\"cmd\"}",
-		"GSH_DEFAULT_TO_YES":                              "true",
+		"BISH_PROMPT":                                      "sync> ",
+		"BISH_APROMPT":                                     "agent> ",
+		"BISH_BUILD_VERSION":                               "dev",
+		"BISH_LOG_LEVEL":                                   "debug",
+		"BISH_CLEAN_LOG_FILE":                              "true",
+		"BISH_MINIMUM_HEIGHT":                              "8",
+		"BISH_ASSISTANT_HEIGHT":                            "4",
+		"BISH_AGENT_NAME":                                  "helper",
+		"BISH_FAST_MODEL_API_KEY":                          "fast-key",
+		"BISH_FAST_MODEL_BASE_URL":                         "https://fast.example.com",
+		"BISH_FAST_MODEL_ID":                               "fast-model",
+		"BISH_SLOW_MODEL_API_KEY":                          "slow-key",
+		"BISH_SLOW_MODEL_BASE_URL":                         "https://slow.example.com",
+		"BISH_SLOW_MODEL_ID":                               "slow-model",
+		"BISH_AGENT_CONTEXT_WINDOW_TOKENS":                 "2048",
+		"BISH_PAST_COMMANDS_CONTEXT_LIMIT":                 "25",
+		"BISH_CONTEXT_TYPES_FOR_AGENT":                     "history,files",
+		"BISH_CONTEXT_TYPES_FOR_PREDICTION_WITH_PREFIX":    "history",
+		"BISH_CONTEXT_TYPES_FOR_PREDICTION_WITHOUT_PREFIX": "files",
+		"BISH_CONTEXT_TYPES_FOR_EXPLANATION":               "commands",
+		"BISH_CONTEXT_NUM_HISTORY_CONCISE":                 "5",
+		"BISH_CONTEXT_NUM_HISTORY_VERBOSE":                 "7",
+		"BISH_AGENT_APPROVED_BASH_COMMAND_REGEX":           "[\"^ls.*\"]",
+		"BISH_AGENT_MACROS":                                "{\"m\":\"cmd\"}",
+		"BISH_DEFAULT_TO_YES":                              "true",
 	}
 
-	assert.Equal(t, len(gshVariableNames), len(expected))
+	assert.Equal(t, len(bishVariableNames), len(expected))
 
 	for name, value := range expected {
 		runner.Vars[name] = expand.Variable{Kind: expand.String, Str: value}
@@ -819,7 +819,7 @@ func TestSyncVariablesToEnvExportsGSHVariables(t *testing.T) {
 
 	for name, value := range expected {
 		assert.Equal(t, value, os.Getenv(name), "environment should include %s", name)
-		assert.Equal(t, value, dynamicEnv.gshVars[name], "dynamic environment should include %s", name)
+		assert.Equal(t, value, dynamicEnv.bishVars[name], "dynamic environment should include %s", name)
 	}
 }
 
@@ -832,21 +832,21 @@ func TestSyncVariablesToEnvRemovesUnsetVariables(t *testing.T) {
 		runner.Vars = make(map[string]expand.Variable)
 	}
 
-	runner.Vars["GSH_PROMPT"] = expand.Variable{Kind: expand.String, Str: "sync> "}
-	t.Setenv("GSH_PROMPT", "stale")
+	runner.Vars["BISH_PROMPT"] = expand.Variable{Kind: expand.String, Str: "sync> "}
+	t.Setenv("BISH_PROMPT", "stale")
 
 	SyncVariablesToEnv(runner)
 
 	dynamicEnv, ok := runner.Env.(*DynamicEnviron)
 	assert.True(t, ok, "runner.Env should be a DynamicEnviron")
-	assert.Equal(t, "sync> ", os.Getenv("GSH_PROMPT"))
-	assert.Equal(t, "sync> ", dynamicEnv.gshVars["GSH_PROMPT"])
+	assert.Equal(t, "sync> ", os.Getenv("BISH_PROMPT"))
+	assert.Equal(t, "sync> ", dynamicEnv.bishVars["BISH_PROMPT"])
 
-	delete(runner.Vars, "GSH_PROMPT")
+	delete(runner.Vars, "BISH_PROMPT")
 	SyncVariablesToEnv(runner)
 
-	_, exists := os.LookupEnv("GSH_PROMPT")
-	assert.False(t, exists, "GSH_PROMPT should be removed from system environment")
-	_, exists = dynamicEnv.gshVars["GSH_PROMPT"]
-	assert.False(t, exists, "GSH_PROMPT should be removed from dynamic environment")
+	_, exists := os.LookupEnv("BISH_PROMPT")
+	assert.False(t, exists, "BISH_PROMPT should be removed from system environment")
+	_, exists = dynamicEnv.bishVars["BISH_PROMPT"]
+	assert.False(t, exists, "BISH_PROMPT should be removed from dynamic environment")
 }

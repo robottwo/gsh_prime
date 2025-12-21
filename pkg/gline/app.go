@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/git"
-	"github.com/atinylittleshell/gsh/internal/system"
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/internal/git"
+	"github.com/robottwo/bishop/internal/system"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"github.com/charmbracelet/bubbles/cursor"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"

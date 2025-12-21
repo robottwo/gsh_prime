@@ -9,23 +9,23 @@ import (
 	"strings"
 	"time"
 
-	"github.com/atinylittleshell/gsh/internal/agent"
-	"github.com/atinylittleshell/gsh/internal/analytics"
-	"github.com/atinylittleshell/gsh/internal/bash"
-	"github.com/atinylittleshell/gsh/internal/coach"
-	"github.com/atinylittleshell/gsh/internal/completion"
-	"github.com/atinylittleshell/gsh/internal/config"
-	"github.com/atinylittleshell/gsh/internal/environment"
-	"github.com/atinylittleshell/gsh/internal/history"
-	"github.com/atinylittleshell/gsh/internal/idle"
-	"github.com/atinylittleshell/gsh/internal/predict"
-	"github.com/atinylittleshell/gsh/internal/rag"
-	"github.com/atinylittleshell/gsh/internal/rag/retrievers"
-	"github.com/atinylittleshell/gsh/internal/styles"
-	"github.com/atinylittleshell/gsh/internal/subagent"
-	"github.com/atinylittleshell/gsh/internal/termtitle"
-	"github.com/atinylittleshell/gsh/pkg/gline"
-	"github.com/atinylittleshell/gsh/pkg/shellinput"
+	"github.com/robottwo/bishop/internal/agent"
+	"github.com/robottwo/bishop/internal/analytics"
+	"github.com/robottwo/bishop/internal/bash"
+	"github.com/robottwo/bishop/internal/coach"
+	"github.com/robottwo/bishop/internal/completion"
+	"github.com/robottwo/bishop/internal/config"
+	"github.com/robottwo/bishop/internal/environment"
+	"github.com/robottwo/bishop/internal/history"
+	"github.com/robottwo/bishop/internal/idle"
+	"github.com/robottwo/bishop/internal/predict"
+	"github.com/robottwo/bishop/internal/rag"
+	"github.com/robottwo/bishop/internal/rag/retrievers"
+	"github.com/robottwo/bishop/internal/styles"
+	"github.com/robottwo/bishop/internal/subagent"
+	"github.com/robottwo/bishop/internal/termtitle"
+	"github.com/robottwo/bishop/pkg/gline"
+	"github.com/robottwo/bishop/pkg/shellinput"
 	"go.uber.org/zap"
 	"golang.org/x/term"
 	"mvdan.cc/sh/v3/interp"
@@ -187,7 +187,7 @@ func RunInteractiveShell(
 				switch control {
 				case "new":
 					agent.ResetChat()
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Chat session reset.\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Chat session reset.\n") + gline.RESET_CURSOR_COLUMN)
 					continue
 				case "tokens":
 					agent.PrintTokenStats()
@@ -195,7 +195,7 @@ func RunInteractiveShell(
 				case "config":
 					if err := config.RunConfigUI(runner); err != nil {
 						logger.Error("error running config UI", zap.Error(err))
-						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("gsh: Error running config: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+						fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Error running config: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
 					}
 					// Sync any gsh variables that were changed in the config UI
 					environment.SyncVariablesToEnv(runner)
@@ -204,7 +204,7 @@ func RunInteractiveShell(
 					// Handle coach command with subcommands
 					if strings.HasPrefix(control, "coach") {
 						if coachManager == nil {
-							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("gsh: Coach not initialized\n") + gline.RESET_CURSOR_COLUMN)
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: Coach not initialized\n") + gline.RESET_CURSOR_COLUMN)
 							continue
 						}
 
@@ -227,13 +227,13 @@ func RunInteractiveShell(
 							result := coachManager.ResetAndRegenerateTips()
 							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE(result+"\n") + gline.RESET_CURSOR_COLUMN)
 						default:
-							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Unknown coach command: "+coachArgs+"\n") + gline.RESET_CURSOR_COLUMN)
+							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Unknown coach command: "+coachArgs+"\n") + gline.RESET_CURSOR_COLUMN)
 							fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("Available: @!coach [stats|achievements|challenges|tips|reset-tips]\n") + gline.RESET_CURSOR_COLUMN)
 						}
 						continue
 					}
 					logger.Warn("unknown agent control", zap.String("control", control))
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Unknown agent control: "+control+"\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Unknown agent control: "+control+"\n") + gline.RESET_CURSOR_COLUMN)
 					continue
 				}
 			}
@@ -241,7 +241,7 @@ func RunInteractiveShell(
 			// Handle magic fix
 			if chatMessage == "?" {
 				if state.LastExitCode == 0 {
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Last command succeeded.\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Last command succeeded.\n") + gline.RESET_CURSOR_COLUMN)
 					continue
 				}
 
@@ -256,7 +256,7 @@ func RunInteractiveShell(
 				var fullResponse strings.Builder
 				for message := range chatChannel {
 					fullResponse.WriteString(message)
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
 				}
 
 				// Extract code block
@@ -334,7 +334,7 @@ func RunInteractiveShell(
 					chatMessage = message
 				} else {
 					logger.Warn("macro not found", zap.String("macro", macroName))
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: Macro not found: "+macroName+"\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: Macro not found: "+macroName+"\n") + gline.RESET_CURSOR_COLUMN)
 					continue
 				}
 			}
@@ -344,7 +344,7 @@ func RunInteractiveShell(
 			if handled {
 				if err != nil {
 					logger.Error("error with subagent command", zap.Error(err))
-					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("gsh: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
+					fmt.Print(gline.RESET_CURSOR_COLUMN + styles.ERROR("bish: "+err.Error()+"\n") + gline.RESET_CURSOR_COLUMN)
 					continue
 				}
 
@@ -367,7 +367,7 @@ func RunInteractiveShell(
 			}
 
 			for message := range chatChannel {
-				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("gsh: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
+				fmt.Print(gline.RESET_CURSOR_COLUMN + styles.AGENT_MESSAGE("bish: "+message+"\n") + gline.RESET_CURSOR_COLUMN)
 			}
 
 			continue
@@ -463,7 +463,7 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	endTime := time.Now()
 
 	durationMs := endTime.Sub(startTime).Milliseconds()
-	_, _, _ = bash.RunBashCommand(ctx, runner, fmt.Sprintf("GSH_LAST_COMMAND_DURATION_MS=%d", durationMs))
+	_, _, _ = bash.RunBashCommand(ctx, runner, fmt.Sprintf("BISH_LAST_COMMAND_DURATION_MS=%d", durationMs))
 
 	var exitCode int
 	if err != nil {
@@ -480,7 +480,7 @@ func executeCommand(ctx context.Context, input string, historyManager *history.H
 	state.LastExitCode = exitCode
 
 	_, _ = historyManager.FinishCommand(historyEntry, exitCode)
-	_, _, _ = bash.RunBashCommand(ctx, runner, fmt.Sprintf("GSH_LAST_COMMAND_EXIT_CODE=%d", exitCode))
+	_, _, _ = bash.RunBashCommand(ctx, runner, fmt.Sprintf("BISH_LAST_COMMAND_EXIT_CODE=%d", exitCode))
 
 	// Record command for coach gamification
 	if coachManager != nil {

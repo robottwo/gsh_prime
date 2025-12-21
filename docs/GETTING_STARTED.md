@@ -1,11 +1,11 @@
-# Getting Started with gsh_prime
+# Getting Started with bishop
 
-gsh_prime is an actively maintained fork of gsh focused on a faster development cycle while remaining compatible and regularly contributing improvements upstream.
+bishop is an actively maintained fork of gsh focused on a faster development cycle while remaining compatible and regularly contributing improvements upstream.
 
 Upstream project: https://github.com/atinylittleshell/gsh
-Fork repository: https://github.com/robottwo/gsh_prime
+Fork repository: https://github.com/robottwo/bishop
 
-If you're new, start here to install, build, and run gsh_prime quickly.
+If you're new, start here to install, build, and run bishop quickly.
 
 ## Requirements
 
@@ -14,49 +14,49 @@ If you're new, start here to install, build, and run gsh_prime quickly.
 
 ## Install and Build
 
-Packaging for gsh_prime is in progress. For now, build from source:
+Packaging for bishop is in progress. For now, build from source:
 
 ```bash
-git clone https://github.com/robottwo/gsh_prime.git
-cd gsh_prime
+git clone https://github.com/robottwo/bishop.git
+cd bishop
 make build
-# The binary will be in ./bin/gsh
+# The binary will be in ./bin/bish
 ```
 
 To make the binary available on your PATH:
 
 ```bash
-sudo install -m 0755 bin/gsh /usr/local/bin/gsh
+sudo install -m 0755 bin/bish /usr/local/bin/bish
 ```
 
 ### Upgrading
 
-gsh includes self-update support. When a new version is available, it can automatically detect and offer to update.
+Bishop includes self-update support. When a new version is available, it can automatically detect and offer to update.
 
-## Launching gsh_prime
+## Launching bishop
 
 ### Manual
 
-Start gsh from an existing shell:
+Start bishop from an existing shell:
 
 ```bash
-gsh
+bish
 ```
 
 ### Automatically from your shell
 
-Add gsh to your shell configuration so it starts automatically:
+Add bishop to your shell configuration so it starts automatically:
 
 ```bash
 # bash
-echo "gsh" | tee -a ~/.bashrc
+echo "bish" | tee -a ~/.bashrc
 ```
 
 ```bash
 # zsh
-echo "gsh" | tee -a ~/.zshrc
-# If you have an alias named gsh for git show, use the full path
-echo "/usr/local/bin/gsh" | tee -a ~/.zshrc
+echo "bish" | tee -a ~/.zshrc
+# If you have an alias named bish, use the full path
+echo "/usr/local/bin/bish" | tee -a ~/.zshrc
 ```
 
 ### As your login shell
@@ -64,9 +64,9 @@ echo "/usr/local/bin/gsh" | tee -a ~/.zshrc
 Not recommended yet, but if you know what you are doing:
 
 ```bash
-which gsh
-echo "/path/to/gsh" | sudo tee -a /etc/shells
-chsh -s "/path/to/gsh"
+which bish
+echo "/path/to/bish" | sudo tee -a /etc/shells
+chsh -s "/path/to/bish"
 ```
 
 ## Default Key Bindings
@@ -107,9 +107,9 @@ Press Ctrl+R to open an interactive history search with fuzzy matching. While in
 
 ## Next Steps
 
-- Configure gsh_prime: see ./CONFIGURATION.md
+- Configure bishop: see ./CONFIGURATION.md
 - Explore features and workflows: see ./FEATURES.md
 - Learn about the Agent: see ./AGENT.md
 - Use specialized Subagents: see ./SUBAGENTS.md
 
-If you run into issues, open an issue at https://github.com/robottwo/gsh_prime/issues.
+If you run into issues, open an issue at https://github.com/robottwo/bishop/issues.
