@@ -22,7 +22,7 @@
     in {
       packages.default = pkgs.buildGoModule {
         pname = "gsh";
-        version = "v${builtins.readFile ./VERSION}";
+        version = version;
         src = ./.;
         vendorHash = "sha256-Lcl6fyZf3ku8B8q4J4ljUyqhLhJ+q61DLj/Bs/RrQZo=";
 
