@@ -1,14 +1,15 @@
 # Contributing to gsh_prime
 
-Thanks for your interest in contributing. gsh_prime is an actively maintained fork of the original gsh project, with a faster development cadence and a commitment to contributing improvements back upstream.
+> **Note: Development of this project has stopped.**
+>
+> This project is no longer actively maintained. Development continues in the permanent fork at **[bishop](https://github.com/robottwo/bishop)**. Please direct contributions there.
 
-- Fork repository: https://github.com/robottwo/gsh_prime
-- Upstream attribution: see the About this fork section in README.md
+---
 
-Our goals:
-- Move quickly while keeping the codebase maintainable and well-tested
-- Keep changes upstream-friendly to ease publishing MRs back to the original project
-- Maintain user trust with a clear review and release process
+Thanks for your interest in contributing. gsh_prime was a fork of the original gsh project. **Development has moved to [bishop](https://github.com/robottwo/bishop).**
+
+- This repository: https://github.com/robottwo/gsh_prime
+- **Continued development: https://github.com/robottwo/bishop**
 
 ## Contents
 
@@ -149,7 +150,6 @@ Guidelines:
 
 ## Contact and support
 
-- Issues: https://github.com/robottwo/gsh_prime/issues
-- For upstream matters, include a note in the issue if you believe the change is an upstream candidate.
+- Issues for bishop: https://github.com/robottwo/bishop/issues
 
-Thank you for helping improve gsh_prime while keeping it aligned with the broader gsh ecosystem.
+Thank you for your interest. Please contribute to [bishop](https://github.com/robottwo/bishop) going forward.

@@ -1,5 +1,9 @@
 # gsh_prime
 
+> **Note: Development of this project has stopped.**
+>
+> This project is no longer actively maintained. Development continues in the permanent fork at **[bishop](https://github.com/robottwo/bishop)**.
+
 [![License](https://img.shields.io/github/license/robottwo/gsh_prime.svg)](https://github.com/robottwo/gsh_prime/blob/main/LICENSE)
 [![Release](https://img.shields.io/github/release/robottwo/gsh_prime.svg)](https://github.com/robottwo/gsh_prime/releases)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/robottwo/gsh_prime/ci.yml?branch=main)](https://github.com/robottwo/gsh_prime/actions)
@@ -10,15 +14,11 @@ A modern, POSIX-compatible, Generative Shell — fast-paced fork of gsh.
 
 ## About this fork
 
-gsh_prime is an actively maintained fork of the original project, gsh.
+gsh_prime was a fork of the original project, gsh. **Development has moved to [bishop](https://github.com/robottwo/bishop).**
 
-- Upstream: https://github.com/atinylittleshell/gsh
-- Fork: https://github.com/robottwo/gsh_prime
-
-Focus areas:
-- Faster development cadence and iteration
-- Compatibility with upstream features and APIs
-- Regular contribution of improvements back to upstream
+- Original upstream: https://github.com/atinylittleshell/gsh
+- This fork: https://github.com/robottwo/gsh_prime
+- **Continued development: https://github.com/robottwo/bishop**
 
 Attribution: All credit for the original project goes to the upstream author and contributors.
 
@@ -132,7 +132,7 @@ Contribution flow:
 
 ## Status
 
-This project is under active development. Expect rapid iteration and occasional breaking changes. Feedback and PRs are appreciated.
+**This project is no longer under active development.** Development continues at [bishop](https://github.com/robottwo/bishop).
 
 ## Acknowledgements
 
